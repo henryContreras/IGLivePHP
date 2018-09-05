@@ -3,9 +3,7 @@ A PHP script that allows for you to go live on Instagram with any streaming prog
 
 Built with [mgp25's amazing Instagram Private API Wrapper for PHP](https://github.com/mgp25/Instagram-API/).
 # Note
-This has been only tested on Windows, I have no clue if this works on UNIX-Based Systems. Feel free to try though!
-
-Additionally, I've only tested this in OBS. Therefore, I highly recommend using it.
+Please read this **entire** document as it has *very* important information about the script. If you create an issue that can be solved by reading this document, it will be ignored.
 
 # Setup
 If you are running this after the first setup, work from step six on...
