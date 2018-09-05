@@ -1,23 +1,31 @@
 <?php
 if (php_sapi_name() !== "cli") {
-    die("You may only run this inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
+    die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
 
 logM("Loading InstagramLive-PHP v0.5...");
 set_time_limit(0);
 date_default_timezone_set('America/New_York');
 
+//Argument Processing
+define("help", in_array("-h", $argv) || in_array("--help", $argv));
+define("bypassCheck", in_array("-b", $argv) || in_array("--bypass-check", $argv));
+define("forceLegacy", in_array("-l", $argv) || in_array("--force-legacy", $argv));
+
+if (help) {
+    logM("Command Line Options:\n-h (--help): Displays this message.\n-b (--bypass-check): Bypasses the OS check. DO NOT USE THIS IF YOU DON'T KNOW WHAT YOU'RE DOING!\n-l (--force-legacy): Forces legacy mode even if you're on Windows.");
+    exit();
+}
+
 //Load Depends from Composer...
 require __DIR__ . '/vendor/autoload.php';
 
 use InstagramAPI\Instagram;
 use InstagramAPI\Request\Live;
+use InstagramAPI\Response\Model\User;
+use InstagramAPI\Response\Model\Comment;
 
 require_once 'config.php';
-/////// (Sorta) Config (Still Don't Touch It) ///////
-$debug = false;
-$truncatedDebug = false;
-/////////////////////////////////////////////////////
 
 if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
     logM("Default Username and Passwords have not been changed! Exiting...");
@@ -26,7 +34,7 @@ if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
 
 //Login to Instagram
 logM("Logging into Instagram...");
-$ig = new Instagram($debug, $truncatedDebug);
+$ig = new Instagram(false, false);
 try {
     $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
 
@@ -41,7 +49,7 @@ try {
     }
 } catch (\Exception $e) {
     if (strpos($e->getMessage(), "Challenge") !== false) {
-        logM("Account Flagged: Please sign out of all phones and try logging into instagram.com from this computer before trying to run this script again!");
+        logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
         exit();
     }
     echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
@@ -77,11 +85,11 @@ try {
 
     logM("^^ Please Start Streaming in OBS/Streaming Program with the URL and Key Above ^^");
 
-    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+    if ((strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' || bypassCheck) && !forceLegacy) {
         logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
         beginListener($ig, $broadcastId, $streamUrl, $streamKey);
     } else {
-        logM("You are not using Windows! Therefore, the script has been put into legacy mode. New commands may not be added to legacy mode but backend features will remain.\nIt is recommended that you use Windows for the full experience!");
+        logM("You are not using Windows! Therefore, the script has been put into legacy mode. New commands may not be added to legacy mode but backend features will remain updated.\nIt is recommended that you use Windows for the full experience!");
         logM("Live Stream is Ready for Commands:");
         newCommand($ig->live, $broadcastId, $streamUrl, $streamKey);
     }
@@ -93,118 +101,146 @@ try {
     echo 'Error While Creating Livestream: ' . $e->getMessage() . "\n";
 }
 
-function addLike(\InstagramAPI\Response\Model\User $user)
+function addLike(User $user)
 {
-    global $cfg_callbacks;
-    logM("@".$user->getUsername()." has liked the stream!");
-    if (
-        $cfg_callbacks &&
-        isset($cfg_callbacks['like']) &&
-        is_callable($cfg_callbacks['like'])
-    ) {
-        $cfg_callbacks['like']($user);
-    }
+    logM("@" . $user->getUsername() . " has liked the stream!");
 }
 
-function addComment(\InstagramAPI\Response\Model\Comment $comment)
+function addComment(Comment $comment)
 {
-    global $cfg_callbacks;
-    logM("Comment [ID " . $comment->getMediaId() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText());
-    if (
-        $cfg_callbacks &&
-        isset($cfg_callbacks['comment']) &&
-        is_callable($cfg_callbacks['comment'])
-    ) {
-        $cfg_callbacks['comment']($comment->getUser(), $comment);
-    }
+    logM("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText());
 }
 
 function beginListener(Instagram $ig, string $broadcastId, $streamUrl, $streamKey)
 {
-    pclose(popen("start \"Command Line Input\" ".PHP_BINARY." commandLine.php", "r"));
+    if (bypassCheck) {
+        logM("You are bypassing the operating system check in an attempt to run the async command line on non-windows devices. THIS IS EXTREMELY UNSUPPORTED AND I DON'T RECOMMEND IT!");
+        logM("That being said, if you cannot start the command line and *need* to end the stream just start the script again without bypassing the check and run the stop command.");
+        logM("You must start commandLine.php manually.");
+    } else {
+        pclose(popen("start \"Command Line Input\" " . PHP_BINARY . " commandLine.php", "r"));
+    }
     cli_set_process_title("Live Chat and Like Output");
     $lastCommentTs = 0;
     $lastLikeTs = 0;
+    $lastCommentPin = -1;
+    $lastCommentPinHandle = '';
+    $lastCommentPinText = '';
     $exit = false;
 
     @unlink(__DIR__ . '/request');
 
     do {
-        $cmd = '';
-        $values = [];
         /** @noinspection PhpComposerExtensionStubsInspection */
         $request = json_decode(@file_get_contents(__DIR__ . '/request'), true);
         if (!empty($request)) {
             $cmd = $request['cmd'];
             $values = $request['values'];
-        }
-        if ($cmd == 'ecomments') {
-            $ig->live->enableComments($broadcastId);
-            logM("Enabled Comments!");
-            unlink(__DIR__ . '/request');
-        } elseif ($cmd == 'dcomments') {
-            $ig->live->disableComments($broadcastId);
-            logM("Disabled Comments!");
-            unlink(__DIR__ . '/request');
-        } elseif ($cmd == 'end') {
-            $archived = $values[0];
-            logM("Wrapping up and exiting...");
-            //Needs this to retain, I guess?
-            $ig->live->getFinalViewerList($broadcastId);
-            $ig->live->end($broadcastId);
-            if ($archived == 'yes') {
-                $ig->live->addToPostLive($broadcastId);
-                logM("Livestream added to Archive!");
+            if ($cmd == 'ecomments') {
+                $ig->live->enableComments($broadcastId);
+                logM("Enabled Comments!");
+            } elseif ($cmd == 'dcomments') {
+                $ig->live->disableComments($broadcastId);
+                logM("Disabled Comments!");
+            } elseif ($cmd == 'end') {
+                $archived = $values[0];
+                logM("Wrapping up and exiting...");
+                //Needs this to retain, I guess?
+                $ig->live->getFinalViewerList($broadcastId);
+                $ig->live->end($broadcastId);
+                if ($archived == 'yes') {
+                    $ig->live->addToPostLive($broadcastId);
+                    logM("Livestream added to Archive!");
+                }
+                logM("Ended stream!");
+                unlink(__DIR__ . '/request');
+                sleep(2);
+                exit();
+            } elseif ($cmd == 'pin') {
+                $commentId = $values[0];
+                if (strlen($commentId) === 17 && //Comment IDs are 17 digits
+                    is_numeric($commentId) && //Comment IDs only contain numbers
+                    strpos($commentId, '-') === false) { //Comment IDs are not negitive
+                    $ig->live->pinComment($broadcastId, $commentId);
+                    logM("Pinned a comment!");
+                } else {
+                    logM("You entered an invalid comment id!");
+                }
+            } elseif ($cmd == 'unpin') {
+                if ($lastCommentPin == -1) {
+                    logM("You have no comment pinned!");
+                } else {
+                    $ig->live->unpinComment($broadcastId, $lastCommentPin);
+                    logM("Unpinned the pinned comment!");
+                }
+            } elseif ($cmd == 'pinned') {
+                if ($lastCommentPin == -1) {
+                    logM("There is no comment pinned!");
+                } else {
+                    logM("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
+                }
+            } elseif ($cmd == 'comment') {
+                $text = $values[0];
+                if ($text !== "") {
+                    $ig->live->comment($broadcastId, $text);
+                    logM("Commented on stream!");
+                } else {
+                    logM("Comments may not be empty!");
+                }
+            } elseif ($cmd == 'url') {
+                logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+            } elseif ($cmd == 'key') {
+                logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+            } elseif ($cmd == 'info') {
+                $info = $ig->live->getInfo($broadcastId);
+                $status = $info->getStatus();
+                $muted = var_export($info->is_Messages(), true);
+                $count = $info->getViewerCount();
+                logM("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
+            } elseif ($cmd == 'viewers') {
+                logM("Viewers:");
+                $ig->live->getInfo($broadcastId);
+                $vCount = 0;
+                foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
+                    logM("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                    $vCount++;
+                }
+                if ($vCount > 0) {
+                    logM("Total Count: " . $vCount);
+                } else {
+                    logM("There are no live viewers.");
+                }
             }
-            logM("Ended stream!");
-            unlink(__DIR__ . '/request');
-            sleep(2);
-            exit();
-        } elseif ($cmd == 'url') {
-            logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-            unlink(__DIR__ . '/request');
-        } elseif ($cmd == 'key') {
-            logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-            unlink(__DIR__ . '/request');
-        } elseif ($cmd == 'info') {
-            $info = $ig->live->getInfo($broadcastId);
-            $status = $info->getStatus();
-            $muted = var_export($info->is_Messages(), true);
-            $count = $info->getViewerCount();
-            logM("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
-            unlink(__DIR__ . '/request');
-        } elseif ($cmd == 'viewers') {
-            $output = '';
-            $ig->live->getInfo($broadcastId);
-            foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                $output .= "@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n";
-            }
-            logM($output);
             unlink(__DIR__ . '/request');
         }
-        // Get broadcast comments.
-        // - The latest comment timestamp will be required for the next
-        //   getComments() request.
-        // - There are two types of comments: System comments and user comments.
-        //   We compare both and keep the newest (most recent) timestamp.
-        $commentsResponse = $ig->live->getComments($broadcastId, $lastCommentTs);
-        $systemComments = $commentsResponse->getSystemComments();
-        $comments = $commentsResponse->getComments();
+
+        $commentsResponse = $ig->live->getComments($broadcastId, $lastCommentTs); //Request comments since the last time we checked
+        $systemComments = $commentsResponse->getSystemComments(); //No idea what system comments are, but we need to so we can track comments
+        $comments = $commentsResponse->getComments(); //Get the actual comments from the request we made
         if (!empty($systemComments)) {
             $lastCommentTs = end($systemComments)->getCreatedAt();
         }
         if (!empty($comments) && end($comments)->getCreatedAt() > $lastCommentTs) {
             $lastCommentTs = end($comments)->getCreatedAt();
         }
-        foreach ($comments as $comment) {
-            addComment($comment);
+
+        if ($commentsResponse->isPinnedComment()) {
+            $pinnedComment = $commentsResponse->getPinnedComment();
+            $lastCommentPin = $pinnedComment->getPk();
+            $lastCommentPinHandle = $pinnedComment->getUser()->getUsername();
+            $lastCommentPinText = $pinnedComment->getText();
+        } else {
+            $lastCommentPin = -1;
         }
-        // Get broadcast heartbeat and viewer count.
-        $ig->live->getHeartbeatAndViewerCount($broadcastId);
-        // Get broadcast like count.
-        // - The latest like timestamp will be required for the next
-        //   getLikeCount() request.
-        $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs);
+
+        if (!empty($comments)) {
+            foreach ($comments as $comment) {
+                addComment($comment);
+            }
+        }
+
+        $ig->live->getHeartbeatAndViewerCount($broadcastId); //Maintain :clap: comments :clap: and :clap: likes :clap: after :clap: stream
+        $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
         $lastLikeTs = $likeCountResponse->getLikeTs();
         foreach ($likeCountResponse->getLikers() as $user) {
             $user = $ig->people->getInfoById($user->getUserId())->getUser();
@@ -216,6 +252,10 @@ function beginListener(Instagram $ig, string $broadcastId, $streamUrl, $streamKe
 
 /**
  * The handler for interpreting the commands passed via the command line.
+ * @param Live $live Instagram live endpoints.
+ * @param string $broadcastId The id of the live stream.
+ * @param string $streamUrl The rtmp link of the stream.
+ * @param string $streamKey The stream key.
  */
 function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
 {
@@ -271,6 +311,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
 
 /**
  * Logs a message in console but it actually uses new lines.
+ * @param string $message message to be logged.
  */
 function logM($message)
 {
