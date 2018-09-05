@@ -18,14 +18,14 @@ If you are running this after the first setup, work from step six on...
 #### Video Tutorial
 If you'd like a video version of this tutorial, see [this video](https://www.youtube.com/watch?v=mZfzFNZSuQc).
 # OBS-Setup
-1. Go to the "Stream" section of your OBS Settings 
-2. Set "Stream Type" to "Custom Streaming Server"
-3. Set the "URL" field to the stream url you got from the script
-4. Set the "Stream key" field to the stream key you got from the script
-5. Make Sure "Use Authentication" is **unchecked** and press "OK"
-6. Start Streaming in OBS
-7. To stop streaming, run the "stop" command in your terminal and then press "Stop Streaming" in OBS
-* Note: To emulate the exact content being sent to Instagram, set your OBS canvas size to 720x1280. This can be done by going to Settings->Video and editing Base Canvas Resolution to "720x1280".
+1. Set your OBS canvas size to 720x1280. This can be done by going to Settings->Video and editing Base Canvas Resolution to "720x1280".
+2. Go to the "Stream" section of your OBS Settings 
+3. Set "Stream Type" to "Custom Streaming Server"
+4. Set the "URL" field to the stream url you got from the script
+5. Set the "Stream key" field to the stream key you got from the script
+6. Make Sure "Use Authentication" is **unchecked** and press "OK"
+7. Start Streaming in OBS
+8. To stop streaming, run the "stop" command in your terminal and then press "Stop Streaming" in OBS
 # Comment & Like Viewing
 To view comments and likes as you are streaming, you'll need a Windows machine as this script's async support only works on Windows. When you run the script on Windows, after it logs you in, it will open a second screen where you can enter commands as the first screen will output comments and likes.
 
@@ -39,6 +39,10 @@ This is mostly due to an invalid stream key: The stream key changes **every** ti
 This is due to you not running the "stop" command inside the script. You cannot just close the command window to make Instagram stop streaming, you must run the stop command in the script. If you *do* close the command window however, start it again and just run the stop command, this should stop Instagram from listing to live content.
 #### I get an error inside of Instagram when archiving my story
 This is usually due to archiving a stream that had no content (video). Just delete the archive and be go on with your day.
+#### I archived my live stream but I don't see it inside of Instagram
+This is can be caused by 1 of 2 reasons:
+* You did not stream anything. Please make sure you actually send a video to the stream url or the archive may fail to load.
+* You did not change your stream content/canvas size. If you are using OBS, you can address this by following step one in [OBS Setup Section](https://github.com/JRoy/InstagramLive-PHP#obs-setup).
 #### I get "CURL Error 60: SSL certificate problem" when trying to log into Instagram
 This is due to CURL not having a valid CA. You can find a solution here: [https://stackoverflow.com/a/34883260](https://stackoverflow.com/a/34883260).
 #### I get "CURL Error 28: Operation timed out after x milliseconds with 0 bytes received."
