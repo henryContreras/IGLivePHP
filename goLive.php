@@ -3,7 +3,7 @@ if (php_sapi_name() !== "cli") {
     die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
 
-logM("Loading InstagramLive-PHP v0.5...");
+logM("Loading InstagramLive-PHP v0.6...");
 set_time_limit(0);
 date_default_timezone_set('America/New_York');
 
@@ -21,9 +21,16 @@ if (help) {
 require __DIR__ . '/vendor/autoload.php';
 
 use InstagramAPI\Instagram;
+use InstagramAPI\Exception\ChallengeRequiredException;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
+
+class ExtendedInstagram extends Instagram {
+    public function changeUser( $username, $password ) {
+        $this->_setUser( $username, $password );
+    }
+}
 
 require_once 'config.php';
 
@@ -34,7 +41,7 @@ if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
 
 //Login to Instagram
 logM("Logging into Instagram...");
-$ig = new Instagram(false, false);
+$ig = new ExtendedInstagram(false, false);
 try {
     $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
 
@@ -48,12 +55,89 @@ try {
         $ig->finishTwoFactorLogin(IG_USERNAME, IG_PASS, $twoFactorIdentifier, $verificationCode);
     }
 } catch (\Exception $e) {
+    /** @noinspection PhpUndefinedMethodInspection */
+    if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
+        $response = $e->getResponse();
+
+        logM("Account Flagged: Would you like InstagramLive-PHP to attempt to verify your identity by either sending an email or text message? Type \"yes\" to do so or anything else to not!\nPlease Note: This system is *highly* experimental and you should only use this method if you're desperate.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $attemptBypass = trim(fgets($handle));
+        if ($attemptBypass == 'yes') {
+            logM("Please wait while we prepare to verify your account.");
+            sleep(3);
+
+            logM("How would you like to verify your identity? Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
+            print "> ";
+            $handle = fopen("php://stdin", "r");
+            $choice = trim(fgets($handle));
+            if ($choice === "sms") {
+                $verification_method = 0;
+            } elseif ($choice === "email") {
+                $verification_method = 1;
+            } else {
+                logM("You have selected an invalid verification type. Aborting!");
+                exit();
+            }
+
+            /** @noinspection PhpUndefinedMethodInspection */
+            $checkApiPath = substr( $response->getChallenge()->getApiPath(), 1);
+            $customResponse = $ig->request($checkApiPath)
+                ->setNeedsAuth(false)
+                ->addPost('choice', $verification_method)
+                ->addPost('_uuid', $ig->uuid)
+                ->addPost('guid', $ig->uuid)
+                ->addPost('device_id', $ig->device_id)
+                ->addPost('_uid', $ig->account_id)
+                ->addPost('_csrftoken', $ig->client->getToken())
+                ->getDecodedResponse();
+
+            try {
+
+                if ($customResponse['status'] === 'ok' && $customResponse['action'] === 'close') {
+                    logM("Challenge Bypassed! Run the script again.");
+                    exit();
+                }
+
+                logM("Please enter the code you received via " . ( $verification_method ? 'email' : 'sms' ) . "!");
+                print "> ";
+                $handle = fopen("php://stdin", "r");
+                $cCode = trim(fgets($handle));
+                $ig->changeUser( $username, $password );
+                $customResponse = $ig->request($checkApiPath)
+                    ->setNeedsAuth(false)
+                    ->addPost('security_code', $cCode)
+                    ->addPost('_uuid', $ig->uuid)
+                    ->addPost('guid', $ig->uuid)
+                    ->addPost('device_id', $ig->device_id)
+                    ->addPost('_uid', $ig->account_id)
+                    ->addPost('_csrftoken', $ig->client->getToken())
+                    ->getDecodedResponse();
+
+                if ($customResponse['status'] === 'ok') {
+                    logM("Your login attempt has probably been successful. Please try re-running the script!");
+                    exit();
+                } else {
+                    logM("Your login attempt *may* have been successful, although unlikely. Please try re-running the script!");
+                    exit();
+                }
+            } catch ( Exception $ex ) {
+                echo $ex->getMessage();
+                exit;
+            }
+        } else {
+            logM("You have opted not to use the auto-account verification. If you still need to use this script, please try logging into instagram.com from this exact computer before trying to run this script again! ");
+            exit();
+        }
+    }
+
+
     if (strpos($e->getMessage(), "Challenge") !== false) {
         logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
         exit();
     }
     echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
-    exit(0);
+    exit();
 }
 
 //Block Responsible for Creating the Livestream.
