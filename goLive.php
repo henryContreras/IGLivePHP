@@ -149,8 +149,7 @@ try {
     logM("Logged In! Creating Livestream...");
     $stream = $ig->live->create();
     $broadcastId = $stream->getBroadcastId();
-    $ig->live->start($broadcastId);
-    // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
+
     $streamUploadUrl = preg_replace(
         '#^rtmps://([^/]+?):443/#ui',
         'rtmp://\1:80/',
@@ -165,9 +164,15 @@ try {
 
     logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
 
-    logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+    logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
 
-    logM("^^ Please Start Streaming in OBS/Streaming Program with the URL and Key Above ^^");
+    logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
+    $pauseH = fopen("php://stdin", "r");
+    $pauseR = fgets($pauseH);
+    fclose($pauseH);
+
+    $ig->live->start($broadcastId);
+    // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
 
     if ((strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' || bypassCheck) && !forceLegacy) {
         logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
