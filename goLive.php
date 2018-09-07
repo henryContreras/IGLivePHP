@@ -94,7 +94,7 @@ try {
 
             try {
 
-                if ($customResponse['status'] === 'ok' && $customResponse['action'] === 'close') {
+                if ($customResponse['status'] === 'ok' && defined($customResponse['action']) && $customResponse['action'] === 'close') {
                     logM("Challenge Bypassed! Run the script again.");
                     exit();
                 }
@@ -103,7 +103,7 @@ try {
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $cCode = trim(fgets($handle));
-                $ig->changeUser( $username, $password );
+                $ig->changeUser(IG_USERNAME, IG_PASS);
                 $customResponse = $ig->request($checkApiPath)
                     ->setNeedsAuth(false)
                     ->addPost('security_code', $cCode)
