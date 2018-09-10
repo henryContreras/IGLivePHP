@@ -114,13 +114,7 @@ try {
                     ->addPost('_csrftoken', $ig->client->getToken())
                     ->getDecodedResponse();
 
-                if ($customResponse['status'] === 'ok') {
-                    logM("Your login attempt has probably been successful. Please try re-running the script!");
-                    exit();
-                } else {
-                    logM("Your login attempt *may* have been successful, although unlikely. Please try re-running the script!");
-                    exit();
-                }
+                logM("Provided you entered the correct code, your login attempt has probably been successful. Please try re-running the script!");
             } catch ( Exception $ex ) {
                 echo $ex->getMessage();
                 exit;
