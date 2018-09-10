@@ -59,7 +59,8 @@ try {
     if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
         $response = $e->getResponse();
 
-        logM("Account Flagged: Would you like InstagramLive-PHP to attempt to verify your identity by either sending an email or text message? Type \"yes\" to do so or anything else to not!\nPlease Note: This system is *highly* experimental and you should only use this method if you're desperate.");
+        logM("Your account has been flagged by Instagram. InstagramLive-PHP can attempt to verify your account by a text or an email. Would you like to do that? Type \"yes\" to do so or anything else to not!");
+        logM("Note: If you already did this, and you think you entered the right code, do not attempt this again! Try logging into instagram.com");
         print "> ";
         $handle = fopen("php://stdin", "r");
         $attemptBypass = trim(fgets($handle));
@@ -67,7 +68,7 @@ try {
             logM("Please wait while we prepare to verify your account.");
             sleep(3);
 
-            logM("How would you like to verify your identity? Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
+            logM("Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
             print "> ";
             $handle = fopen("php://stdin", "r");
             $choice = trim(fgets($handle));
@@ -93,7 +94,6 @@ try {
                 ->getDecodedResponse();
 
             try {
-
                 if ($customResponse['status'] === 'ok' && defined($customResponse['action']) && $customResponse['action'] === 'close') {
                     logM("Challenge Bypassed! Run the script again.");
                     exit();
@@ -126,16 +126,11 @@ try {
                 exit;
             }
         } else {
-            logM("You have opted not to use the auto-account verification. If you still need to use this script, please try logging into instagram.com from this exact computer before trying to run this script again! ");
+            logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
             exit();
         }
     }
 
-
-    if (strpos($e->getMessage(), "Challenge") !== false) {
-        logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
-        exit();
-    }
     echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
     exit();
 }
