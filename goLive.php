@@ -207,7 +207,7 @@ function beginListener(Instagram $ig, string $broadcastId, $streamUrl, $streamKe
         logM("That being said, if you cannot start the command line and *need* to end the stream just start the script again without bypassing the check and run the stop command.");
         logM("You must start commandLine.php manually.");
     } else {
-        pclose(popen("start \"Command Line Input\" " . PHP_BINARY . " commandLine.php", "r"));
+        pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
     }
     cli_set_process_title("Live Chat and Like Output");
     $lastCommentTs = 0;
