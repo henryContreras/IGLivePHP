@@ -55,9 +55,10 @@ try {
         $ig->finishTwoFactorLogin(IG_USERNAME, IG_PASS, $twoFactorIdentifier, $verificationCode);
     }
 } catch (\Exception $e) {
-    /** @noinspection PhpUndefinedMethodInspection */
-    if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
-        $response = $e->getResponse();
+    try {
+        /** @noinspection PhpUndefinedMethodInspection */
+        if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
+            $response = $e->getResponse();
 
         logM("Your account has been flagged by Instagram. InstagramLive-PHP can attempt to verify your account by a text or an email. Would you like to do that? Type \"yes\" to do so or anything else to not!");
         logM("Note: If you already did this, and you think you entered the right code, do not attempt this again! Try logging into instagram.com");
@@ -123,6 +124,9 @@ try {
             logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
             exit();
         }
+    } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
+        echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
+        exit();
     }
 
     echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
