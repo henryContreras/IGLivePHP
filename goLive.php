@@ -60,54 +60,33 @@ try {
         if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
             $response = $e->getResponse();
 
-        logM("Your account has been flagged by Instagram. InstagramLive-PHP can attempt to verify your account by a text or an email. Would you like to do that? Type \"yes\" to do so or anything else to not!");
-        logM("Note: If you already did this, and you think you entered the right code, do not attempt this again! Try logging into instagram.com");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $attemptBypass = trim(fgets($handle));
-        if ($attemptBypass == 'yes') {
-            logM("Please wait while we prepare to verify your account.");
-            sleep(3);
-
-            logM("Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
+            logM("Your account has been flagged by Instagram. InstagramLive-PHP can attempt to verify your account by a text or an email. Would you like to do that? Type \"yes\" to do so or anything else to not!");
+            logM("Note: If you already did this, and you think you entered the right code, do not attempt this again! Try logging into instagram.com from this same computer or enabling 2FA.");
             print "> ";
             $handle = fopen("php://stdin", "r");
-            $choice = trim(fgets($handle));
-            if ($choice === "sms") {
-                $verification_method = 0;
-            } elseif ($choice === "email") {
-                $verification_method = 1;
-            } else {
-                logM("You have selected an invalid verification type. Aborting!");
-                exit();
-            }
+            $attemptBypass = trim(fgets($handle));
+            if ($attemptBypass == 'yes') {
+                logM("Please wait while we prepare to verify your account.");
+                sleep(3);
 
-            /** @noinspection PhpUndefinedMethodInspection */
-            $checkApiPath = substr( $response->getChallenge()->getApiPath(), 1);
-            $customResponse = $ig->request($checkApiPath)
-                ->setNeedsAuth(false)
-                ->addPost('choice', $verification_method)
-                ->addPost('_uuid', $ig->uuid)
-                ->addPost('guid', $ig->uuid)
-                ->addPost('device_id', $ig->device_id)
-                ->addPost('_uid', $ig->account_id)
-                ->addPost('_csrftoken', $ig->client->getToken())
-                ->getDecodedResponse();
-
-            try {
-                if ($customResponse['status'] === 'ok' && defined($customResponse['action']) && $customResponse['action'] === 'close') {
-                    logM("Challenge Bypassed! Run the script again.");
+                logM("Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
+                print "> ";
+                $handle = fopen("php://stdin", "r");
+                $choice = trim(fgets($handle));
+                if ($choice === "sms") {
+                    $verification_method = 0;
+                } elseif ($choice === "email") {
+                    $verification_method = 1;
+                } else {
+                    logM("You have selected an invalid verification type. Aborting!");
                     exit();
                 }
 
-                logM("Please enter the code you received via " . ( $verification_method ? 'email' : 'sms' ) . "!");
-                print "> ";
-                $handle = fopen("php://stdin", "r");
-                $cCode = trim(fgets($handle));
-                $ig->changeUser(IG_USERNAME, IG_PASS);
+                /** @noinspection PhpUndefinedMethodInspection */
+                $checkApiPath = substr($response->getChallenge()->getApiPath(), 1);
                 $customResponse = $ig->request($checkApiPath)
                     ->setNeedsAuth(false)
-                    ->addPost('security_code', $cCode)
+                    ->addPost('choice', $verification_method)
                     ->addPost('_uuid', $ig->uuid)
                     ->addPost('guid', $ig->uuid)
                     ->addPost('device_id', $ig->device_id)
@@ -115,14 +94,39 @@ try {
                     ->addPost('_csrftoken', $ig->client->getToken())
                     ->getDecodedResponse();
 
-                logM("Provided you entered the correct code, your login attempt has probably been successful. Please try re-running the script!");
-            } catch ( Exception $ex ) {
-                echo $ex->getMessage();
-                exit;
+                try {
+                    if ($customResponse['status'] === 'ok' && defined($customResponse['action'])) {
+                        if ($customResponse['action'] === 'close') {
+                            logM("Challenge Bypassed! Run the script again.");
+                            exit();
+                        }
+                    }
+
+                    logM("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "!");
+                    print "> ";
+                    $handle = fopen("php://stdin", "r");
+                    $cCode = trim(fgets($handle));
+                    $ig->changeUser(IG_USERNAME, IG_PASS);
+                    $customResponse = $ig->request($checkApiPath)
+                        ->setNeedsAuth(false)
+                        ->addPost('security_code', $cCode)
+                        ->addPost('_uuid', $ig->uuid)
+                        ->addPost('guid', $ig->uuid)
+                        ->addPost('device_id', $ig->device_id)
+                        ->addPost('_uid', $ig->account_id)
+                        ->addPost('_csrftoken', $ig->client->getToken())
+                        ->getDecodedResponse();
+
+                    logM("Provided you entered the correct code, your login attempt has probably been successful. Please try re-running the script!");
+                    exit();
+                } catch (Exception $ex) {
+                    echo $ex->getMessage();
+                    exit;
+                }
+            } else {
+                logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
+                exit();
             }
-        } else {
-            logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
-            exit();
         }
     } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
         echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
