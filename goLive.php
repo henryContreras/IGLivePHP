@@ -197,7 +197,7 @@ function addComment(Comment $comment)
     logM("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText());
 }
 
-function beginListener(Instagram $ig, string $broadcastId, $streamUrl, $streamKey)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey)
 {
     if (bypassCheck) {
         logM("You are bypassing the operating system check in an attempt to run the async command line on non-windows devices. THIS IS EXTREMELY UNSUPPORTED AND I DON'T RECOMMEND IT!");
