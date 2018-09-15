@@ -40,7 +40,7 @@ if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
 }
 
 //Login to Instagram
-logM("Logging into Instagram...");
+logM("Logging into Instagram, This can take up-to two minutes. Please wait...");
 $ig = new ExtendedInstagram(false, false);
 try {
     $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
@@ -95,7 +95,7 @@ try {
                     ->getDecodedResponse();
 
                 try {
-                    if ($customResponse['status'] === 'ok' && defined($customResponse['action'])) {
+                    if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
                         if ($customResponse['action'] === 'close') {
                             logM("Challenge Bypassed! Run the script again.");
                             exit();
