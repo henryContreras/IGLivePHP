@@ -3,7 +3,7 @@ if (php_sapi_name() !== "cli") {
     die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
 
-logM("Loading InstagramLive-PHP v0.5...");
+logM("Loading InstagramLive-PHP v0.6...");
 set_time_limit(0);
 date_default_timezone_set('America/New_York');
 
@@ -21,9 +21,16 @@ if (help) {
 require __DIR__ . '/vendor/autoload.php';
 
 use InstagramAPI\Instagram;
+use InstagramAPI\Exception\ChallengeRequiredException;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
+
+class ExtendedInstagram extends Instagram {
+    public function changeUser( $username, $password ) {
+        $this->_setUser( $username, $password );
+    }
+}
 
 require_once 'config.php';
 
@@ -33,8 +40,8 @@ if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
 }
 
 //Login to Instagram
-logM("Logging into Instagram...");
-$ig = new Instagram(false, false);
+logM("Logging into Instagram, This can take up-to two minutes. Please wait...");
+$ig = new ExtendedInstagram(false, false);
 try {
     $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
 
@@ -48,12 +55,86 @@ try {
         $ig->finishTwoFactorLogin(IG_USERNAME, IG_PASS, $twoFactorIdentifier, $verificationCode);
     }
 } catch (\Exception $e) {
-    if (strpos($e->getMessage(), "Challenge") !== false) {
-        logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
+    try {
+        /** @noinspection PhpUndefinedMethodInspection */
+        if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
+            $response = $e->getResponse();
+
+            logM("Your account has been flagged by Instagram. InstagramLive-PHP can attempt to verify your account by a text or an email. Would you like to do that? Type \"yes\" to do so or anything else to not!");
+            logM("Note: If you already did this, and you think you entered the right code, do not attempt this again! Try logging into instagram.com from this same computer or enabling 2FA.");
+            print "> ";
+            $handle = fopen("php://stdin", "r");
+            $attemptBypass = trim(fgets($handle));
+            if ($attemptBypass == 'yes') {
+                logM("Please wait while we prepare to verify your account.");
+                sleep(3);
+
+                logM("Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
+                print "> ";
+                $handle = fopen("php://stdin", "r");
+                $choice = trim(fgets($handle));
+                if ($choice === "sms") {
+                    $verification_method = 0;
+                } elseif ($choice === "email") {
+                    $verification_method = 1;
+                } else {
+                    logM("You have selected an invalid verification type. Aborting!");
+                    exit();
+                }
+
+                /** @noinspection PhpUndefinedMethodInspection */
+                $checkApiPath = substr($response->getChallenge()->getApiPath(), 1);
+                $customResponse = $ig->request($checkApiPath)
+                    ->setNeedsAuth(false)
+                    ->addPost('choice', $verification_method)
+                    ->addPost('_uuid', $ig->uuid)
+                    ->addPost('guid', $ig->uuid)
+                    ->addPost('device_id', $ig->device_id)
+                    ->addPost('_uid', $ig->account_id)
+                    ->addPost('_csrftoken', $ig->client->getToken())
+                    ->getDecodedResponse();
+
+                try {
+                    if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
+                        if ($customResponse['action'] === 'close') {
+                            logM("Challenge Bypassed! Run the script again.");
+                            exit();
+                        }
+                    }
+
+                    logM("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "!");
+                    print "> ";
+                    $handle = fopen("php://stdin", "r");
+                    $cCode = trim(fgets($handle));
+                    $ig->changeUser(IG_USERNAME, IG_PASS);
+                    $customResponse = $ig->request($checkApiPath)
+                        ->setNeedsAuth(false)
+                        ->addPost('security_code', $cCode)
+                        ->addPost('_uuid', $ig->uuid)
+                        ->addPost('guid', $ig->uuid)
+                        ->addPost('device_id', $ig->device_id)
+                        ->addPost('_uid', $ig->account_id)
+                        ->addPost('_csrftoken', $ig->client->getToken())
+                        ->getDecodedResponse();
+
+                    logM("Provided you entered the correct code, your login attempt has probably been successful. Please try re-running the script!");
+                    exit();
+                } catch (Exception $ex) {
+                    echo $ex->getMessage();
+                    exit;
+                }
+            } else {
+                logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
+                exit();
+            }
+        }
+    } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
+        echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
         exit();
     }
+
     echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
-    exit(0);
+    exit();
 }
 
 //Block Responsible for Creating the Livestream.
@@ -65,8 +146,7 @@ try {
     logM("Logged In! Creating Livestream...");
     $stream = $ig->live->create();
     $broadcastId = $stream->getBroadcastId();
-    $ig->live->start($broadcastId);
-    // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
+
     $streamUploadUrl = preg_replace(
         '#^rtmps://([^/]+?):443/#ui',
         'rtmp://\1:80/',
@@ -81,9 +161,15 @@ try {
 
     logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
 
-    logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+    logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
 
-    logM("^^ Please Start Streaming in OBS/Streaming Program with the URL and Key Above ^^");
+    logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
+    $pauseH = fopen("php://stdin", "r");
+    $pauseR = fgets($pauseH);
+    fclose($pauseH);
+
+    $ig->live->start($broadcastId);
+    // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
 
     if ((strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' || bypassCheck) && !forceLegacy) {
         logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
@@ -111,14 +197,14 @@ function addComment(Comment $comment)
     logM("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText());
 }
 
-function beginListener(Instagram $ig, string $broadcastId, $streamUrl, $streamKey)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey)
 {
     if (bypassCheck) {
         logM("You are bypassing the operating system check in an attempt to run the async command line on non-windows devices. THIS IS EXTREMELY UNSUPPORTED AND I DON'T RECOMMEND IT!");
         logM("That being said, if you cannot start the command line and *need* to end the stream just start the script again without bypassing the check and run the stop command.");
         logM("You must start commandLine.php manually.");
     } else {
-        pclose(popen("start \"Command Line Input\" " . PHP_BINARY . " commandLine.php", "r"));
+        pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
     }
     cli_set_process_title("Live Chat and Like Output");
     $lastCommentTs = 0;

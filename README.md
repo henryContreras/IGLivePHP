@@ -8,6 +8,8 @@ Please read this **entire** document as it has *very* important information abou
 # Setup
 If you are running this after the first setup, work from step six on...
 
+Also, if you are updating this script from an old version, please delete your old script and re-follow all these instructions.
+
 1. Install PHP, of course...
 2. [Install Composer](https://getcomposer.org/download/)
 3. Clone the Repository
