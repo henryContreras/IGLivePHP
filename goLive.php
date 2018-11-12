@@ -38,9 +38,9 @@ class ExtendedInstagram extends Instagram
 
 require_once 'config.php';
 
-main();
+main(true);
 
-function main()
+function main($console)
 {
     if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
         logM("Default Username and Passwords have not been changed! Exiting...");
@@ -181,7 +181,7 @@ function main()
 
         if ((strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' || bypassCheck) && !forceLegacy) {
             logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey);
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console);
         } else {
             logM("You are not using Windows! Therefore, the script has been put into legacy mode. New commands may not be added to legacy mode but backend features will remain updated.\nIt is recommended that you use Windows for the full experience!");
             logM("Live Stream is Ready for Commands:");
@@ -206,14 +206,16 @@ function addComment(Comment $comment)
     logM("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText());
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console)
 {
     if (bypassCheck) {
         logM("You are bypassing the operating system check in an attempt to run the async command line on non-windows devices. THIS IS EXTREMELY UNSUPPORTED AND I DON'T RECOMMEND IT!");
         logM("That being said, if you cannot start the command line and *need* to end the stream just start the script again without bypassing the check and run the stop command.");
         logM("You must start commandLine.php manually.");
     } else {
-        pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
+        if ($console) {
+            pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
+        }
     }
     cli_set_process_title("Live Chat and Like Output");
     $lastCommentTs = 0;
@@ -365,7 +367,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey)
             $restart = trim(fgets($handle));
             if ($restart == 'yes' || infiniteStream) {
                 logM("Restarting Livestream!");
-                main();
+                main(false);
             }
             logM("Stream Ended! Please remember to close the console window!");
             unlink(__DIR__ . '/request');
