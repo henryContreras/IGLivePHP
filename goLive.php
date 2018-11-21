@@ -1,11 +1,8 @@
 <?php
+define("scriptVersion", "0.7");
 if (php_sapi_name() !== "cli") {
     die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
-
-logM("Loading InstagramLive-PHP v0.6...");
-set_time_limit(0);
-date_default_timezone_set('America/New_York');
 
 //Argument Processing
 define("help", in_array("-h", $argv) || in_array("-help", $argv) || in_array("--help", $argv));
@@ -13,6 +10,15 @@ define("bypassCheck", in_array("-b", $argv) || in_array("--bypass-check", $argv)
 define("forceLegacy", in_array("-l", $argv) || in_array("--force-legacy", $argv));
 define("bypassCutoff", in_array("--bypass-cutoff", $argv));
 define("infiniteStream", in_array("-i", $argv), in_array("--infinite-stream", $argv));
+define("dump", in_array("-d", $argv), in_array("--dump", $argv));
+
+logM("Loading InstagramLive-PHP v" . scriptVersion . "...");
+set_time_limit(0);
+date_default_timezone_set('America/New_York');
+
+if (dump) {
+    dump();
+}
 
 if (help) {
     logM("Command Line Options:\n-h (--help): Displays this message.\n-b (--bypass-check): Bypasses the OS check. DO NOT USE THIS IF YOU DON'T KNOW WHAT YOU'RE DOING!\n-l (--force-legacy): Forces legacy mode even if you're on Windows.\n--bypass-cutoff: Bypasses hour stream cutoff. This is only suggested if you are verified!\n-i (--infinite-stream): Automatically starts the next stream when the hour cutoff is met.");
@@ -38,6 +44,7 @@ class ExtendedInstagram extends Instagram
 
 require_once 'config.php';
 
+//Run the script and spawn a new console window if applicable.
 main(true);
 
 function main($console)
@@ -115,7 +122,7 @@ function main($console)
                         $handle = fopen("php://stdin", "r");
                         $cCode = trim(fgets($handle));
                         $ig->changeUser(IG_USERNAME, IG_PASS);
-                        $customResponse = $ig->request($checkApiPath)
+                        $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
                             ->addPost('security_code', $cCode)
                             ->addPost('_uuid', $ig->uuid)
@@ -133,15 +140,18 @@ function main($console)
                     }
                 } else {
                     logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
+                    dump();
                     exit();
                 }
             }
         } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
             echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
+            dump();
             exit();
         }
 
         echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
+        dump();
         exit();
     }
 
@@ -149,6 +159,7 @@ function main($console)
     try {
         if (!$ig->isMaybeLoggedIn) {
             logM("Couldn't Login! Exiting!");
+            dump();
             exit();
         }
         logM("Logged In! Creating Livestream...");
@@ -174,7 +185,7 @@ function main($console)
 
         logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
         $pauseH = fopen("php://stdin", "r");
-        $pauseR = fgets($pauseH);
+        fgets($pauseH);
         fclose($pauseH);
 
         $ig->live->start($broadcastId);
@@ -188,11 +199,13 @@ function main($console)
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey);
         }
 
-        logM("Something Went Super Wrong! Attempting to At-Least Clean Up!");
+        logM("Something Went Super Wrong & It would be helpful if you shared the system dump on GitHub! Attempting to At-Least Clean Up this Mess!");
         $ig->live->getFinalViewerList($broadcastId);
         $ig->live->end($broadcastId);
     } catch (\Exception $e) {
         echo 'Error While Creating Livestream: ' . $e->getMessage() . "\n";
+        dump();
+        exit();
     }
 }
 
@@ -436,6 +449,29 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
     }
     fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey);
+}
+
+function dump()
+{
+    clearstatcache();
+    logM("===========BEGIN DUMP===========");
+    logM("InstagramLive-PHP Version: " . scriptVersion);
+    logM("Operating System: " . PHP_OS);
+    logM("PHP Version: " . PHP_VERSION);
+    logM("PHP Runtime: " . php_sapi_name());
+    logM("Bypassing OS-Check: " . bypassCheck == true ? "true" : "false");
+    //Holy hell php, your type system forced me to do this
+    if (file_exists("composer.lock")) {
+        logM("Composer Lock: true");
+    } else {
+        logM("Composer Lock: false");
+    }
+    if (file_exists("vendor/")) {
+        logM("Vendor Folder: true");
+    } else {
+        logM("Vendor Folder: false");
+    }
+    logM("============END DUMP============");
 }
 
 /**
