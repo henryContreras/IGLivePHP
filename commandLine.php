@@ -1,4 +1,6 @@
 <?php
+define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
+
 logM("Please wait while while the command line ensures that the live script is properly started!");
 sleep(2);
 logM("Command Line Ready! Type \"help\" for help.");
@@ -18,10 +20,13 @@ function newCommand()
         logM("Disabled Comments!");
     } elseif ($line == 'stop' || $line == 'end') {
         fclose($handle);
-        logM("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $archived = trim(fgets($handle));
+        $archived = "yes";
+        if (!autoArchive) {
+            logM("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
+            print "> ";
+            $handle = fopen("php://stdin", "r");
+            $archived = trim(fgets($handle));
+        }
         if ($archived == 'yes') {
             sendRequest("end", ["yes"]);
         } else {

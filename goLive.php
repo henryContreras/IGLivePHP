@@ -10,6 +10,7 @@ define("bypassCheck", in_array("-b", $argv) || in_array("--bypass-check", $argv)
 define("forceLegacy", in_array("-l", $argv) || in_array("--force-legacy", $argv));
 define("bypassCutoff", in_array("--bypass-cutoff", $argv));
 define("infiniteStream", in_array("-i", $argv), in_array("--infinite-stream", $argv));
+define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
 define("dump", in_array("-d", $argv), in_array("--dump", $argv));
 
 logM("Loading InstagramLive-PHP v" . scriptVersion . "...");
@@ -227,7 +228,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         logM("You must start commandLine.php manually.");
     } else {
         if ($console) {
-            pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
+            if (autoArchive) {
+                pclose(popen("start \"Command Line Input\" php commandLine.php -a", "r"));
+            } else {
+                pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
+            }
         }
     }
     cli_set_process_title("Live Chat and Like Output");
@@ -365,10 +370,13 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 
         //Calculate Times
         if (!bypassCutoff && (time() - $startTime) >= 3480) {
-            logM("Your stream has ended due to Instagram's one hour time limit! Would you like to archive this stream?");
-            print "> ";
-            $handle = fopen("php://stdin", "r");
-            $archived = trim(fgets($handle));
+            logM("Your stream has ended due to Instagram's one hour time limit!");
+            $archived = "yes";
+            if (!autoArchive) {
+                print "Would you like to archive this stream?\n> ";
+                $handle = fopen("php://stdin", "r");
+                $archived = trim(fgets($handle));
+            }
             if ($archived == 'yes') {
                 logM("Adding to Archive...");
                 $ig->live->addToPostLive($broadcastId);
@@ -418,10 +426,14 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
         //Needs this to retain, I guess?
         $live->getFinalViewerList($broadcastId);
         $live->end($broadcastId);
-        logM("Stream Ended!\nWould you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $archived = trim(fgets($handle));
+        logM("Stream Ended!");
+        $archived = "yes";
+        if (!autoArchive) {
+            logM("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
+            print "> ";
+            $handle = fopen("php://stdin", "r");
+            $archived = trim(fgets($handle));
+        }
         if ($archived == 'yes') {
             logM("Adding to Archive!");
             $live->addToPostLive($broadcastId);
