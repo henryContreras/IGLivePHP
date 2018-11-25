@@ -374,11 +374,14 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 $ig->live->addToPostLive($broadcastId);
                 logM("Livestream added to archive!");
             }
-            logM("Would you like to go live again?");
-            print "> ";
-            $handle = fopen("php://stdin", "r");
-            $restart = trim(fgets($handle));
-            if ($restart == 'yes' || infiniteStream) {
+            $restart = "yes";
+            if (!infiniteStream) {
+                logM("Would you like to go live again?");
+                print "> ";
+                $handle = fopen("php://stdin", "r");
+                $restart = trim(fgets($handle));
+            }
+            if ($restart == 'yes') {
                 logM("Restarting Livestream!");
                 main(false);
             }
