@@ -338,10 +338,10 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         $systemComments = $commentsResponse->getSystemComments(); //No idea what system comments are, but we need to so we can track comments
         $comments = $commentsResponse->getComments(); //Get the actual comments from the request we made
         if (!empty($systemComments)) {
-            $lastCommentTs = end($systemComments)->getCreatedAt();
+            $lastCommentTs = $systemComments[0]->getCreatedAt();
         }
-        if (!empty($comments) && end($comments)->getCreatedAt() > $lastCommentTs) {
-            $lastCommentTs = end($comments)->getCreatedAt();
+        if (!empty($comments) && $comments[0]->getCreatedAt() > $lastCommentTs) {
+            $lastCommentTs = $comments[0]->getCreatedAt();
         }
 
         if ($commentsResponse->isPinnedComment()) {
