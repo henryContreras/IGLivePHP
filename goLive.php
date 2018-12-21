@@ -11,6 +11,7 @@ define("forceLegacy", in_array("-l", $argv) || in_array("--force-legacy", $argv)
 define("bypassCutoff", in_array("--bypass-cutoff", $argv));
 define("infiniteStream", in_array("-i", $argv), in_array("--infinite-stream", $argv));
 define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
+define("logCommentOutput", in_array("-o", $argv), in_array("--comment-output", $argv));
 define("dump", in_array("-d", $argv), in_array("--dump", $argv));
 
 logM("Loading InstagramLive-PHP v" . scriptVersion . "...");
@@ -22,7 +23,14 @@ if (dump) {
 }
 
 if (help) {
-    logM("Command Line Options:\n-h (--help): Displays this message.\n-b (--bypass-check): Bypasses the OS check. DO NOT USE THIS IF YOU DON'T KNOW WHAT YOU'RE DOING!\n-l (--force-legacy): Forces legacy mode even if you're on Windows.\n--bypass-cutoff: Bypasses hour stream cutoff. This is only suggested if you are verified!\n-i (--infinite-stream): Automatically starts the next stream when the hour cutoff is met.");
+    logM("Command Line Options:\n
+    -h (--help): Displays this message.\n
+    -b (--bypass-check): Bypasses the OS check. DO NOT USE THIS IF YOU DON'T KNOW WHAT YOU'RE DOING!\n
+    -l (--force-legacy): Forces legacy mode even if you're on Windows.\n
+    --bypass-cutoff: Bypasses hour stream cutoff. This is only suggested if you are verified!\n
+    -i (--infinite-stream): Automatically starts the next stream when the hour cutoff is met.\n
+    -a (--auto-archive): Automatically archives a live stream after it ends.\n
+    -o (--comment-output): Logs comment and like output into a text file.");
     exit();
 }
 
@@ -212,12 +220,20 @@ function main($console)
 
 function addLike(User $user)
 {
-    logM("@" . $user->getUsername() . " has liked the stream!");
+    $cmt = "@" . $user->getUsername() . " has liked the stream!";
+    logM($cmt);
+    if (logCommentOutput) {
+        logOutput($cmt);
+    }
 }
 
 function addComment(Comment $comment)
 {
-    logM("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText());
+    $cmt = "Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText();
+    logM($cmt);
+    if (logCommentOutput) {
+        logOutput($cmt);
+    }
 }
 
 function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console)
@@ -246,6 +262,10 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 
 
     @unlink(__DIR__ . '/request');
+
+    if (logCommentOutput) {
+        @unlink(__DIR__ . '/output.txt');
+    }
 
     do {
         /** @noinspection PhpComposerExtensionStubsInspection */
@@ -487,6 +507,15 @@ function dump()
         logM("Vendor Folder: false");
     }
     logM("============END DUMP============");
+}
+
+/**
+ * Logs message to a output file.
+ * @param string $message message to be logged to file.
+ */
+function logOutput($message)
+{
+    file_put_contents('output.txt', $message . PHP_EOL, FILE_APPEND | LOCK_EX);
 }
 
 /**
