@@ -274,108 +274,113 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         //Check for commands
         $request = json_decode(@file_get_contents(__DIR__ . '/request'), true);
         if (!empty($request)) {
-            $cmd = $request['cmd'];
-            $values = $request['values'];
-            if ($cmd == 'ecomments') {
-                $ig->live->enableComments($broadcastId);
-                logM("Enabled Comments!");
-            } elseif ($cmd == 'dcomments') {
-                $ig->live->disableComments($broadcastId);
-                logM("Disabled Comments!");
-            } elseif ($cmd == 'end') {
-                $archived = $values[0];
-                logM("Wrapping up and exiting...");
-                //Needs this to retain, I guess?
-                $ig->live->getFinalViewerList($broadcastId);
-                $ig->live->end($broadcastId);
-                if ($archived == 'yes') {
-                    $ig->live->addToPostLive($broadcastId);
-                    logM("Livestream added to Archive!");
+            try {
+                $cmd = $request['cmd'];
+                $values = $request['values'];
+                if ($cmd == 'ecomments') {
+                    $ig->live->enableComments($broadcastId);
+                    logM("Enabled Comments!");
+                } elseif ($cmd == 'dcomments') {
+                    $ig->live->disableComments($broadcastId);
+                    logM("Disabled Comments!");
+                } elseif ($cmd == 'end') {
+                    $archived = $values[0];
+                    logM("Wrapping up and exiting...");
+                    //Needs this to retain, I guess?
+                    $ig->live->getFinalViewerList($broadcastId);
+                    $ig->live->end($broadcastId);
+                    if ($archived == 'yes') {
+                        $ig->live->addToPostLive($broadcastId);
+                        logM("Livestream added to Archive!");
+                    }
+                    logM("Ended stream!");
+                    unlink(__DIR__ . '/request');
+                    sleep(2);
+                    exit();
+                } elseif ($cmd == 'pin') {
+                    $commentId = $values[0];
+                    if (strlen($commentId) === 17 && //Comment IDs are 17 digits
+                        is_numeric($commentId) && //Comment IDs only contain numbers
+                        strpos($commentId, '-') === false) { //Comment IDs are not negative
+                        $ig->live->pinComment($broadcastId, $commentId);
+                        logM("Pinned a comment!");
+                    } else {
+                        logM("You entered an invalid comment id!");
+                    }
+                } elseif ($cmd == 'unpin') {
+                    if ($lastCommentPin == -1) {
+                        logM("You have no comment pinned!");
+                    } else {
+                        $ig->live->unpinComment($broadcastId, $lastCommentPin);
+                        logM("Unpinned the pinned comment!");
+                    }
+                } elseif ($cmd == 'pinned') {
+                    if ($lastCommentPin == -1) {
+                        logM("There is no comment pinned!");
+                    } else {
+                        logM("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
+                    }
+                } elseif ($cmd == 'comment') {
+                    $text = $values[0];
+                    if ($text !== "") {
+                        $ig->live->comment($broadcastId, $text);
+                        logM("Commented on stream!");
+                    } else {
+                        logM("Comments may not be empty!");
+                    }
+                } elseif ($cmd == 'url') {
+                    logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+                } elseif ($cmd == 'key') {
+                    logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+                } elseif ($cmd == 'info') {
+                    $info = $ig->live->getInfo($broadcastId);
+                    $status = $info->getStatus();
+                    $muted = var_export($info->is_Messages(), true);
+                    $count = $info->getViewerCount();
+                    logM("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
+                } elseif ($cmd == 'viewers') {
+                    logM("Viewers:");
+                    $ig->live->getInfo($broadcastId);
+                    $vCount = 0;
+                    foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
+                        logM("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                        $vCount++;
+                    }
+                    if ($vCount > 0) {
+                        logM("Total Count: " . $vCount);
+                    } else {
+                        logM("There are no live viewers.");
+                    }
+                } elseif ($cmd == 'questions') {
+                    logM("Questions:");
+                    foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
+                        logM("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
+                    }
+                } elseif ($cmd == 'showquestion') {
+                    $questionId = $values[0];
+                    if (strlen($questionId) === 17 && //Question IDs are 17 digits
+                        is_numeric($questionId) && //Question IDs only contain numbers
+                        strpos($questionId, '-') === false) { //Question IDs are not negative
+                        $lastQuestion = $questionId;
+                        $ig->live->showQuestion($broadcastId, $questionId);
+                        logM("Displayed question!");
+                    } else {
+                        logM("You entered an invalid question id!");
+                    }
+                } elseif ($cmd == 'hidequestion') {
+                    if ($lastQuestion == -1) {
+                        logM("You have no question displayed!");
+                    } else {
+                        $ig->live->hideQuestion($broadcastId, $lastQuestion);
+                        $lastQuestion = -1;
+                        logM("Hid the displayed question!");
+                    }
                 }
-                logM("Ended stream!");
                 unlink(__DIR__ . '/request');
-                sleep(2);
-                exit();
-            } elseif ($cmd == 'pin') {
-                $commentId = $values[0];
-                if (strlen($commentId) === 17 && //Comment IDs are 17 digits
-                    is_numeric($commentId) && //Comment IDs only contain numbers
-                    strpos($commentId, '-') === false) { //Comment IDs are not negative
-                    $ig->live->pinComment($broadcastId, $commentId);
-                    logM("Pinned a comment!");
-                } else {
-                    logM("You entered an invalid comment id!");
-                }
-            } elseif ($cmd == 'unpin') {
-                if ($lastCommentPin == -1) {
-                    logM("You have no comment pinned!");
-                } else {
-                    $ig->live->unpinComment($broadcastId, $lastCommentPin);
-                    logM("Unpinned the pinned comment!");
-                }
-            } elseif ($cmd == 'pinned') {
-                if ($lastCommentPin == -1) {
-                    logM("There is no comment pinned!");
-                } else {
-                    logM("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
-                }
-            } elseif ($cmd == 'comment') {
-                $text = $values[0];
-                if ($text !== "") {
-                    $ig->live->comment($broadcastId, $text);
-                    logM("Commented on stream!");
-                } else {
-                    logM("Comments may not be empty!");
-                }
-            } elseif ($cmd == 'url') {
-                logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-            } elseif ($cmd == 'key') {
-                logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-            } elseif ($cmd == 'info') {
-                $info = $ig->live->getInfo($broadcastId);
-                $status = $info->getStatus();
-                $muted = var_export($info->is_Messages(), true);
-                $count = $info->getViewerCount();
-                logM("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
-            } elseif ($cmd == 'viewers') {
-                logM("Viewers:");
-                $ig->live->getInfo($broadcastId);
-                $vCount = 0;
-                foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                    logM("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
-                    $vCount++;
-                }
-                if ($vCount > 0) {
-                    logM("Total Count: " . $vCount);
-                } else {
-                    logM("There are no live viewers.");
-                }
-            } elseif ($cmd == 'questions') {
-                logM("Questions:");
-                foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
-                    logM("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
-                }
-            } elseif ($cmd == 'showquestion') {
-                $questionId = $values[0];
-                if (strlen($questionId) === 17 && //Question IDs are 17 digits
-                    is_numeric($questionId) && //Question IDs only contain numbers
-                    strpos($questionId, '-') === false) { //Question IDs are not negative
-                    $lastQuestion = $questionId;
-                    $ig->live->showQuestion($broadcastId, $questionId);
-                    logM("Displayed question!");
-                } else {
-                    logM("You entered an invalid question id!");
-                }
-            } elseif ($cmd == 'hidequestion') {
-                if ($lastQuestion == -1) {
-                    logM("You have no question displayed!");
-                } else {
-                    $ig->live->hideQuestion($broadcastId, $lastQuestion);
-                    $lastQuestion = -1;
-                    logM("Hid the displayed question!");
-                }
+            } catch (Exception $cmdexc) {
+                echo 'Error While Executing Command: ' . $cmdexc->getMessage() . "\n";
+                dump();
             }
-            unlink(__DIR__ . '/request');
         }
 
         //Process Comments
