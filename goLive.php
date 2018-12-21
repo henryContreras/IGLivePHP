@@ -254,6 +254,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     cli_set_process_title("Live Chat and Like Output");
     $lastCommentTs = 0;
     $lastLikeTs = 0;
+    $lastQuestion = -1;
     $lastCommentPin = -1;
     $lastCommentPinHandle = '';
     $lastCommentPinText = '';
@@ -299,7 +300,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 $commentId = $values[0];
                 if (strlen($commentId) === 17 && //Comment IDs are 17 digits
                     is_numeric($commentId) && //Comment IDs only contain numbers
-                    strpos($commentId, '-') === false) { //Comment IDs are not negitive
+                    strpos($commentId, '-') === false) { //Comment IDs are not negative
                     $ig->live->pinComment($broadcastId, $commentId);
                     logM("Pinned a comment!");
                 } else {
@@ -348,6 +349,30 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     logM("Total Count: " . $vCount);
                 } else {
                     logM("There are no live viewers.");
+                }
+            } elseif ($cmd == 'questions') {
+                logM("Questions:");
+                foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
+                    logM("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
+                }
+            } elseif ($cmd == 'showquestion') {
+                $questionId = $values[0];
+                if (strlen($questionId) === 17 && //Question IDs are 17 digits
+                    is_numeric($questionId) && //Question IDs only contain numbers
+                    strpos($questionId, '-') === false) { //Question IDs are not negative
+                    $lastQuestion = $questionId;
+                    $ig->live->showQuestion($broadcastId, $questionId);
+                    logM("Displayed question!");
+                } else {
+                    logM("You entered an invalid question id!");
+                }
+            } elseif ($cmd == 'hidequestion') {
+                if ($lastQuestion == -1) {
+                    logM("You have no question displayed!");
+                } else {
+                    $ig->live->hideQuestion($broadcastId, $lastQuestion);
+                    $lastQuestion = -1;
+                    logM("Hid the displayed question!");
                 }
             }
             unlink(__DIR__ . '/request');
