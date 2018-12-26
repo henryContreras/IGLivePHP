@@ -70,8 +70,37 @@ function newCommand()
     } elseif ($line == 'viewers') {
         logM("Please check the other window for your viewers list!");
         sendRequest("viewers", null);
+    } elseif ($line == 'questions') {
+        logM("Please check the other window for you questions list!");
+        sendRequest("questions", null);
+    } elseif ($line == 'showquestion') {
+        fclose($handle);
+        logM("Please enter the question id you would like to display.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $questionId = trim(fgets($handle));
+        logM("Please check the other window to make sure the question was displayed!");
+        sendRequest('showquestion', [$questionId]);
+    } elseif ($line == 'hidequestion') {
+        logM("Please check the other window to make sure the question was removed!");
+        sendRequest('hidequestion', null);
     } elseif ($line == 'help') {
-        logM("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\npin - Pins a Comment\nunpin - Unpins a comment if one is pinned\npinned - Gets the currently pinned comment\ncomment - Comments on the stream\nstop - Stops the Live Stream");
+        logM("Commands:\n
+        help - Prints this message\n
+        url - Prints Stream URL\n
+        key - Prints Stream Key\n
+        info - Grabs Stream Info\n
+        viewers - Grabs Stream Viewers\n
+        ecomments - Enables Comments\n
+        dcomments - Disables Comments\n
+        pin - Pins a Comment\n
+        unpin - Unpins a comment if one is pinned\n
+        pinned - Gets the currently pinned comment\n
+        comment - Comments on the stream\n
+        questions - Shows all questions from the stream\n
+        showquestion - Displays question on livestream\n
+        hidequestion - Hides displayed question if one is displayed\n
+        stop - Stops the Live Stream");
     } else {
         logM("Invalid Command. Type \"help\" for help!");
     }
