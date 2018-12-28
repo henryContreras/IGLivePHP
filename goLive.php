@@ -1,5 +1,5 @@
 <?php
-define("scriptVersion", "0.8");
+define("scriptVersion", "0.8.1");
 if (php_sapi_name() !== "cli") {
     die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
