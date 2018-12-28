@@ -265,7 +265,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     @unlink(__DIR__ . '/request');
 
     if (logCommentOutput) {
-        @unlink(__DIR__ . '/output.txt');
+        logOutput(PHP_EOL . "--- New Session At Epoch: " . time() . " ---" . PHP_EOL);
     }
 
     do {
