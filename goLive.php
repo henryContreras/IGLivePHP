@@ -191,6 +191,10 @@ function main($console)
         logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
 
         logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
+        if (isWindows()) {
+            shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
+            logM("Your stream key has been pre-copied to your clipboard.");
+        }
 
         logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
         $pauseH = fopen("php://stdin", "r");
@@ -199,7 +203,7 @@ function main($console)
 
         $ig->live->start($broadcastId);
 
-        if ((strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' || bypassCheck) && !forceLegacy) {
+        if ((isWindows() || bypassCheck) && !forceLegacy) {
             logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
             beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console);
         } else {
@@ -332,6 +336,8 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
                 } elseif ($cmd == 'key') {
                     logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+                    shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
+                    logM("Your stream key has been pre-copied to your clipboard.");
                 } elseif ($cmd == 'info') {
                     $info = $ig->live->getInfo($broadcastId);
                     $status = $info->getStatus();
@@ -495,6 +501,10 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
         logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
     } elseif ($line == 'key') {
         logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+        if (isWindows()) { //Support Windows (even in legacy mode)
+            shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
+            logM("Your stream key has been pre-copied to your clipboard.");
+        }
     } elseif ($line == 'info') {
         $info = $live->getInfo($broadcastId);
         $status = $info->getStatus();
@@ -537,6 +547,15 @@ function dump()
         logM("Vendor Folder: false");
     }
     logM("============END DUMP============");
+}
+
+/**
+ * Helper function to check if the current OS is Windows.
+ * @return bool Returns true if running Windows.
+ */
+function isWindows(): bool
+{
+    return strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
 }
 
 /**
