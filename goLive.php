@@ -534,6 +534,7 @@ function dump()
     logM("Operating System: " . PHP_OS);
     logM("PHP Version: " . PHP_VERSION);
     logM("PHP Runtime: " . php_sapi_name());
+    logM("PHP Binary: " . PHP_BINARY);
     logM("Bypassing OS-Check: " . bypassCheck == true ? "true" : "false");
     //Holy hell php, your type system forced me to do this
     if (file_exists("composer.lock")) {
