@@ -249,9 +249,9 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     } else {
         if ($console) {
             if (autoArchive) {
-                pclose(popen("start \"Command Line Input\" php commandLine.php -a", "r"));
+                pclose(popen("start \"Command Line Input\" \"" . PHP_BINARY . "\" commandLine.php -a", "r"));
             } else {
-                pclose(popen("start \"Command Line Input\" php commandLine.php", "r"));
+                pclose(popen("start \"Command Line Input\" \"" . PHP_BINARY . "\" commandLine.php", "r"));
             }
         }
     }
