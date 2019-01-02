@@ -12,6 +12,7 @@ define("bypassCutoff", in_array("--bypass-cutoff", $argv));
 define("infiniteStream", in_array("-i", $argv), in_array("--infinite-stream", $argv));
 define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
 define("logCommentOutput", in_array("-o", $argv), in_array("--comment-output", $argv));
+define("obsAutomationAccept", in_array("--obs", $argv));
 define("dump", in_array("-d", $argv), in_array("--dump", $argv));
 
 logM("Loading InstagramLive-PHP v" . scriptVersion . "...");
@@ -30,12 +31,15 @@ if (help) {
     --bypass-cutoff: Bypasses hour stream cutoff. This is only suggested if you are verified!\n
     -i (--infinite-stream): Automatically starts the next stream when the hour cutoff is met.\n
     -a (--auto-archive): Automatically archives a live stream after it ends.\n
-    -o (--comment-output): Logs comment and like output into a text file.");
+    -o (--comment-output): Logs comment and like output into a text file.\n
+    --obs: Automatically accepts the OBS prompt.
+    -d (--dump): Forces an error dump for debug purposes.");
     exit();
 }
 
-//Load Depends from Composer...
-require __DIR__ . '/vendor/autoload.php';
+//Load Classes
+require __DIR__ . '/vendor/autoload.php'; //Composer
+require 'obs.php'; //OBS Utils
 
 use InstagramAPI\Instagram;
 use InstagramAPI\Exception\ChallengeRequiredException;
@@ -54,9 +58,9 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true);
+main(true, new ObsHelper());
 
-function main($console)
+function main($console, ObsHelper $helper)
 {
     if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
         logM("Default Username and Passwords have not been changed! Exiting...");
@@ -188,28 +192,74 @@ function main($console)
         $streamUrl = $split[0];
         $streamKey = $broadcastId . $split[1];
 
+        $obsAutomation = true;
+        if ($helper->obs_path === null) {
+            logM("Disabled OBS Integration (Couldn't Resolve Path): If you have OBS on your computer, please make a ticket on GitHub!");
+            if (!isWindows()) {
+                logM("Additionally, you're not using Windows; Please do not report this since OBS Integration is only supported on Windows!");
+            }
+            $obsAutomation = false;
+        } else {
+            if (!obsAutomationAccept) {
+                logM("You are eligible for OBS Integration! Would you like the script to automatically populate your stream url/key into OBS and start streaming for you? Type \"yes\" if you would like to enable OBS Integration or anything else to not.");
+                print "> ";
+                $eoiH = fopen("php://stdin", "r");
+                $eoi = trim(fgets($eoiH));
+                if ($eoi !== "yes") {
+                    $obsAutomation = false;
+                }
+                fclose($eoiH);
+            }
+        }
+
         logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
 
         logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
-        if (isWindows()) {
-            shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
-            logM("Your stream key has been pre-copied to your clipboard.");
+
+        if (!$obsAutomation) {
+            if (isWindows()) {
+                shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
+                logM("Your stream key has been pre-copied to your clipboard.");
+            }
+        } else {
+            logM("Killing OBS...");
+            $helper->killOBS();
+            if (!$helper->attempted_save) {
+                logM("Backing-up your old OBS service.json...");
+                $helper->saveServiceState();
+            }
+            logM("Populating service.json with new stream url & key.");
+            $helper->setServiceState($streamUrl, $streamKey);
+            logM("Re-launching OBS...");
+            $helper->spawnOBS();
+            logM("Waiting for OBS...");
+            if ($helper->waitForOBS()) {
+                sleep(1);
+                logM("OBS Launched Successfully! Starting Stream...");
+            } else {
+                logM("OBS was not detected! Press enter once you confirm OBS is streaming...");
+                $oPauseH = fopen("php://stdin", "r");
+                fgets($oPauseH);
+                fclose($oPauseH);
+            }
         }
 
-        logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
-        $pauseH = fopen("php://stdin", "r");
-        fgets($pauseH);
-        fclose($pauseH);
+        if (!$obsAutomation) {
+            logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
+            $pauseH = fopen("php://stdin", "r");
+            fgets($pauseH);
+            fclose($pauseH);
+        }
 
         $ig->live->start($broadcastId);
 
         if ((isWindows() || bypassCheck) && !forceLegacy) {
             logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console);
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper);
         } else {
             logM("You are not using Windows! Therefore, the script has been put into legacy mode. New commands may not be added to legacy mode but backend features will remain updated.\nIt is recommended that you use Windows for the full experience!");
             logM("Live Stream is Ready for Commands:");
-            newCommand($ig->live, $broadcastId, $streamUrl, $streamKey);
+            newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
         }
 
         logM("Something Went Super Wrong & It would be helpful if you shared the system dump on GitHub! Attempting to At-Least Clean Up this Mess!");
@@ -240,7 +290,7 @@ function addComment(Comment $comment)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper)
 {
     if (bypassCheck) {
         logM("You are bypassing the operating system check in an attempt to run the async command line on non-windows devices. THIS IS EXTREMELY UNSUPPORTED AND I DON'T RECOMMEND IT!");
@@ -288,6 +338,12 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     $ig->live->disableComments($broadcastId);
                     logM("Disabled Comments!");
                 } elseif ($cmd == 'end') {
+                    if ($obsAuto) {
+                        logM("Killing OBS...");
+                        $helper->killOBS();
+                        logM("Restoring old service.json...");
+                        $helper->resetServiceState();
+                    }
                     $archived = $values[0];
                     logM("Wrapping up and exiting...");
                     //Needs this to retain, I guess?
@@ -447,7 +503,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 logM("Restarting Livestream!");
-                main(false);
+                main(false, $helper);
             }
             logM("Stream Ended! Please remember to close the console window!");
             unlink(__DIR__ . '/request');
@@ -465,8 +521,10 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
  * @param string $broadcastId The id of the live stream.
  * @param string $streamUrl The rtmp link of the stream.
  * @param string $streamKey The stream key.
+ * @param bool $obsAuto True if obs automation is enabled.
+ * @param ObsHelper $helper The helper class for obs utils.
  */
-function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
+function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsAuto, ObsHelper $helper)
 {
     print "\n> ";
     $handle = fopen("php://stdin", "r");
@@ -479,6 +537,12 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
         logM("Disabled Comments!");
     } elseif ($line == 'stop' || $line == 'end') {
         fclose($handle);
+        if ($obsAuto) {
+            logM("Killing OBS...");
+            $helper->killOBS();
+            logM("Restoring old service.json...");
+            $helper->resetServiceState();
+        }
         //Needs this to retain, I guess?
         $live->getFinalViewerList($broadcastId);
         $live->end($broadcastId);
@@ -523,7 +587,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey)
         logM("Invalid Command. Type \"help\" for help!");
     }
     fclose($handle);
-    newCommand($live, $broadcastId, $streamUrl, $streamKey);
+    newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
 
 function dump()

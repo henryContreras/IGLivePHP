@@ -5,6 +5,7 @@ class ObsHelper
     public $service_path;
     public $obs_path;
     public $service_state;
+    public $attempted_save;
 
     /**
      * Checks for OBS installation and detects service file locations.
@@ -13,6 +14,7 @@ class ObsHelper
     {
         $this->service_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\service.json";
         $this->service_state = null;
+        $this->attempted_save = false;
 
         clearstatcache();
         if (@file_exists("C:/Program Files/obs-studio/")) {
@@ -20,8 +22,7 @@ class ObsHelper
         } elseif (@file_exists("C:/Program Files (x86)/obs-studio/")) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
         } else {
-            logM("OBS is not detected! OBS-Integration is now disabling...");
-            $this->obs_path = null;
+            $this->obs_path = null; //OBS's path could not be found, the script will disable OBS integration.
         }
     }
 
@@ -36,6 +37,7 @@ class ObsHelper
             return;
         }
         $this->service_state = null;
+        $this->attempted_save = true;
     }
 
     /**
@@ -104,13 +106,4 @@ class ObsHelper
         }
         return false;
     }
-}
-
-/**
- * Logs a message in console but it actually uses new lines.
- * @param string $message message to be logged.
- */
-function logM($message)
-{
-    print $message . "\n";
 }
