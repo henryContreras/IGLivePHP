@@ -37,6 +37,11 @@ if (help) {
     exit();
 }
 
+//Check for required files
+existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
+existsOrError('obs.php', "OBS Integration");
+existsOrError('config.php', "Username & Password Storage");
+
 //Load Classes
 require __DIR__ . '/vendor/autoload.php'; //Composer
 require 'obs.php'; //OBS Utils
@@ -630,6 +635,21 @@ function isWindows(): bool
 function logOutput($message)
 {
     file_put_contents('output.txt', $message . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * Checks for a file existance, if it doesn't exist throw a dump and exit the script.
+ * @param $path string Path to the file.
+ * @param $reason string Reason the file is needed.
+ */
+function existsOrError($path, $reason)
+{
+    if (!file_exists($path)) {
+        logM("The following file, `" . $path . "` is required and not found by the script for the following reason: " . $reason);
+        logM("Please make sure you follow the setup guide correctly.");
+        dump();
+        exit();
+    }
 }
 
 /**
