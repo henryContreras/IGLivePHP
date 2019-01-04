@@ -63,7 +63,7 @@ main(true, new ObsHelper());
 function main($console, ObsHelper $helper)
 {
     if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
-        logM("Default Username and Passwords have not been changed! Exiting...");
+        logM("Default Username or Password have not been changed! Exiting...");
         exit();
     }
 
