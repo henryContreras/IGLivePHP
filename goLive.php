@@ -37,6 +37,12 @@ if (help) {
     exit();
 }
 
+if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
+    logM("This script requires PHP version 7 or higher! Please update your php installation before attempting to run this script again!");
+    dump();
+    exit();
+}
+
 //Check for required files
 existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
 existsOrError('obs.php', "OBS Integration");
@@ -194,8 +200,8 @@ function main($console, ObsHelper $helper)
         //Grab the stream url as well as the stream key.
         $split = preg_split("[" . $broadcastId . "]", $streamUploadUrl);
 
-        $streamUrl = $split[0];
-        $streamKey = $broadcastId . $split[1];
+        $streamUrl = trim($split[0]);
+        $streamKey = trim($broadcastId . $split[1]);
 
         $obsAutomation = true;
         if ($helper->obs_path === null) {
@@ -223,7 +229,7 @@ function main($console, ObsHelper $helper)
 
         if (!$obsAutomation) {
             if (isWindows()) {
-                shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
+                shell_exec("echo " . str_replace("&", "^^^&", $streamKey) . " | clip");
                 logM("Your stream key has been pre-copied to your clipboard.");
             }
         } else {
