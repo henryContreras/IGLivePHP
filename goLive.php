@@ -227,9 +227,11 @@ function main($console, ObsHelper $helper)
                 logM("Your stream key has been pre-copied to your clipboard.");
             }
         } else {
-            logM("Killing OBS...");
-            $helper->killOBS();
-            if (!$helper->attempted_save) {
+            if ($helper->isObsRunning()) {
+                logM("Killing OBS...");
+                $helper->killOBS();
+            }
+            if (!$helper->attempted_service_save) {
                 logM("Backing-up your old OBS service.json...");
                 $helper->saveServiceState();
             }
