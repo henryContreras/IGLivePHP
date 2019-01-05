@@ -231,6 +231,12 @@ function main($console, ObsHelper $helper)
                 logM("Killing OBS...");
                 $helper->killOBS();
             }
+            if (!$helper->attempted_settings_save) {
+                logM("Backing-up your old OBS basic.ini...");
+                $helper->saveSettingsState();
+            }
+            logM("Loading basic.ini with optimal OBS settings...");
+            $helper->updateSettingsState();
             if (!$helper->attempted_service_save) {
                 logM("Backing-up your old OBS service.json...");
                 $helper->saveServiceState();
@@ -348,6 +354,8 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     if ($obsAuto) {
                         logM("Killing OBS...");
                         $helper->killOBS();
+                        logM("Restoring old basic.ini...");
+                        $helper->resetSettingsState();
                         logM("Restoring old service.json...");
                         $helper->resetServiceState();
                     }
@@ -547,6 +555,8 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         if ($obsAuto) {
             logM("Killing OBS...");
             $helper->killOBS();
+            logM("Restoring old basic.ini...");
+            $helper->resetSettingsState();
             logM("Restoring old service.json...");
             $helper->resetServiceState();
         }
