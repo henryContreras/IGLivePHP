@@ -1,39 +1,35 @@
-<?php
-define("scriptVersion", "0.9");
+<?php /** @noinspection PhpComposerExtensionStubsInspection */ /** @noinspection PhpUndefinedConstantInspection */
+
+set_time_limit(0);
+date_default_timezone_set('America/New_York');
 if (php_sapi_name() !== "cli") {
     die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
 
 //Argument Processing
-define("help", in_array("-h", $argv) || in_array("-help", $argv) || in_array("--help", $argv));
-define("bypassCheck", in_array("-b", $argv) || in_array("--bypass-check", $argv));
-define("forceLegacy", in_array("-l", $argv) || in_array("--force-legacy", $argv));
-define("bypassCutoff", in_array("--bypass-cutoff", $argv));
-define("infiniteStream", in_array("-i", $argv), in_array("--infinite-stream", $argv));
-define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
-define("logCommentOutput", in_array("-o", $argv), in_array("--comment-output", $argv));
-define("obsAutomationAccept", in_array("--obs", $argv));
-define("dump", in_array("-d", $argv), in_array("--dump", $argv));
+$helpData = [];
+$helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
+$helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypasses the operating system check. Please do not use this if you don't use this if you don't know what you're doing!", "b", "bypass-check");
+$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows users.", "l", "force-legacy");
+$helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
+$helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
+$helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
+$helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
+$helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
+$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 
+define("scriptVersion", "1.0");
 logM("Loading InstagramLive-PHP v" . scriptVersion . "...");
-set_time_limit(0);
-date_default_timezone_set('America/New_York');
 
 if (dump) {
     dump();
 }
 
 if (help) {
-    logM("Command Line Options:\n
-    -h (--help): Displays this message.\n
-    -b (--bypass-check): Bypasses the OS check. DO NOT USE THIS IF YOU DON'T KNOW WHAT YOU'RE DOING!\n
-    -l (--force-legacy): Forces legacy mode even if you're on Windows.\n
-    --bypass-cutoff: Bypasses hour stream cutoff. This is only suggested if you are verified!\n
-    -i (--infinite-stream): Automatically starts the next stream when the hour cutoff is met.\n
-    -a (--auto-archive): Automatically archives a live stream after it ends.\n
-    -o (--comment-output): Logs comment and like output into a text file.\n
-    --obs: Automatically accepts the OBS prompt.
-    -d (--dump): Forces an error dump for debug purposes.");
+    foreach ($helpData as $option) {
+        $dOption = json_decode($option, true);
+        logM($dOption['tacks']['mini'] . ($dOption['tacks']['full'] !== null ? " (" . $dOption['tacks']['full'] . "): " : ": ") . $dOption['description']);
+    }
     exit();
 }
 
@@ -611,6 +607,35 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     }
     fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
+}
+
+
+/**
+ * Registers a command line argument to a global variable.
+ * @param array $helpData The array which holds the command data for the help menu.
+ * @param array $argv The array of arguments passed to the script.
+ * @param string $name The name to be used in the global variable.
+ * @param string $description The description of the argument to be used in the help menu.
+ * @param string $tack The mini-tack argument name.
+ * @param string|null $fullTack The full-tack argument name.
+ * @return array The array of help data with the new argument.
+ */
+function registerArgument(array $helpData, array $argv, string $name, string $description, string $tack, string $fullTack = null): array
+{
+    if ($fullTack !== null) {
+        $fullTack = '--' . $fullTack;
+    }
+    define($name, in_array('-' . $tack, $argv) || in_array($fullTack, $argv));
+    /** @noinspection PhpComposerExtensionStubsInspection */
+    array_push($helpData, json_encode([
+        'name' => $name,
+        'description' => $description,
+        'tacks' => [
+            'mini' => '-' . $tack,
+            'full' => $fullTack
+        ]
+    ]));
+    return $helpData;
 }
 
 function dump()
