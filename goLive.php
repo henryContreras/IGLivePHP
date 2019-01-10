@@ -6,6 +6,12 @@ if (php_sapi_name() !== "cli") {
     die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
 }
 
+if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
+    logM("This script requires PHP version 7 or higher! Please update your php installation before attempting to run this script again!");
+    dump();
+    exit();
+}
+
 //Argument Processing
 $helpData = [];
 $helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
@@ -30,12 +36,6 @@ if (help) {
         $dOption = json_decode($option, true);
         logM($dOption['tacks']['mini'] . ($dOption['tacks']['full'] !== null ? " (" . $dOption['tacks']['full'] . "): " : ": ") . $dOption['description']);
     }
-    exit();
-}
-
-if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
-    logM("This script requires PHP version 7 or higher! Please update your php installation before attempting to run this script again!");
-    dump();
     exit();
 }
 
