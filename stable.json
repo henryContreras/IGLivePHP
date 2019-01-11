@@ -5,13 +5,19 @@
     "commandLine.php",
     "utils.php",
     "obs.php",
-    "composer.json"
+    "composer.json",
+    "update.php"
   ],
+  "config": {
+    "versionCode": "2",
+    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/config.php"
+  },
   "links": {
     "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/goLive.php",
     "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/commandLine.php",
     "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/utils.php",
     "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/obs.php",
-    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/composer.json"
+    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/composer.json",
+    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/update.php"
   }
 }
