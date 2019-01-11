@@ -3,12 +3,14 @@
   "files": [
     "goLive.php",
     "commandLine.php",
+    "utils.php",
     "obs.php",
     "composer.json"
   ],
   "links": {
     "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/goLive.php",
     "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/commandLine.php",
+    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/utils.php",
     "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/obs.php",
     "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/composer.json"
   }
