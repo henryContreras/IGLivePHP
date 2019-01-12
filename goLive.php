@@ -33,6 +33,10 @@ define("scriptVersion", "1.0");
 define("scriptFlavor", "custom");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
+if (Utils::checkForUpdate(scriptVersion, scriptFlavor)) {
+    Utils::log("Update: A new update is available, run the `update.php` script to fetch it!");
+}
+
 if (dumpFlavor) {
     Utils::log(scriptFlavor);
     exit();
