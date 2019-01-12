@@ -10,7 +10,7 @@
   ],
   "config": {
     "versionCode": "2",
-    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/config.php"
+    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/config.php"
   },
   "links": {
     "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/goLive.php",
