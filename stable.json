@@ -10,14 +10,14 @@
   ],
   "config": {
     "versionCode": "2",
-    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/config.php"
+    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/config.php"
   },
   "links": {
-    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/goLive.php",
-    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/commandLine.php",
-    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/utils.php",
-    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/obs.php",
-    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/composer.json",
-    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/update.php"
+    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/goLive.php",
+    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/commandLine.php",
+    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/utils.php",
+    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/obs.php",
+    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/composer.json",
+    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/update.php"
   }
 }
