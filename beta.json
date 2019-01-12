@@ -1,0 +1,23 @@
+{
+  "version": "0.9",
+  "files": [
+    "goLive.php",
+    "commandLine.php",
+    "utils.php",
+    "obs.php",
+    "composer.json",
+    "update.php"
+  ],
+  "config": {
+    "versionCode": "2",
+    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@master/config.php"
+  },
+  "links": {
+    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/goLive.php",
+    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/commandLine.php",
+    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/utils.php",
+    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/obs.php",
+    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/composer.json",
+    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@release/1.0/update.php"
+  }
+}
