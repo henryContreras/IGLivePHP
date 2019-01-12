@@ -1,7 +1,14 @@
-<?php /** @noinspection PhpUndefinedConstantInspection */
+<?php /** @noinspection PhpComposerExtensionStubsInspection */ /** @noinspection PhpUndefinedConstantInspection */
 
 class Utils
 {
+    public static function checkForUpdate(string $current, string $flavor): bool
+    {
+        if ($flavor == "custom") {
+            return false;
+        }
+        return (double) json_decode(file_get_contents("https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@update/$flavor.json"), true)['version'] > (double) $current;
+    }
     /**
      * Sanitizes a stream key for clip command on Windows.
      * @param string $streamKey The stream key to sanitize.
@@ -14,27 +21,23 @@ class Utils
 
     /**
      * Logs information about the current environment.
+     * @param string $exception Exception message to log.
      */
-    public static function dump()
+    public static function dump(string $exception = null)
     {
         clearstatcache();
         Utils::log("===========BEGIN DUMP===========");
         Utils::log("InstagramLive-PHP Version: " . scriptVersion);
+        Utils::log("InstagramLive-PHP Flavor: " . scriptFlavor);
         Utils::log("Operating System: " . PHP_OS);
         Utils::log("PHP Version: " . PHP_VERSION);
         Utils::log("PHP Runtime: " . php_sapi_name());
         Utils::log("PHP Binary: " . PHP_BINARY);
-        Utils::log("Bypassing OS-Check: " . bypassCheck == true ? "true" : "false");
-        //Holy hell php, your type system forced me to do this
-        if (file_exists("composer.lock")) {
-            Utils::log("Composer Lock: true");
-        } else {
-            Utils::log("Composer Lock: false");
-        }
-        if (file_exists("vendor/")) {
-            Utils::log("Vendor Folder: true");
-        } else {
-            Utils::log("Vendor Folder: false");
+        Utils::log("Bypassing OS-Check: " . (bypassCheck == true ? "true" : "false"));
+        Utils::log("Composer Lock: " . (file_exists("composer.lock") == true ? "true" : "false"));
+        Utils::log("Vendor Folder: " . (file_exists("vendor/") == true ? "true" : "false"));
+        if ($exception !== null) {
+            Utils::log("Exception: " . $exception);
         }
         Utils::log("============END DUMP============");
     }
@@ -67,7 +70,7 @@ class Utils
         if (!file_exists($path)) {
             Utils::log("The following file, `" . $path . "` is required and not found by the script for the following reason: " . $reason);
             Utils::log("Please make sure you follow the setup guide correctly.");
-            dump();
+            Utils::dump();
             exit();
         }
     }
