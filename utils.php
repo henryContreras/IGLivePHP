@@ -7,7 +7,7 @@ class Utils
         if ($flavor == "custom") {
             return false;
         }
-        return (double) json_decode(file_get_contents("https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@update/$flavor.json"), true)['version'] > (double) $current;
+        return (int) json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/$flavor.json"), true)['versionCode'] > (int) $current;
     }
     /**
      * Sanitizes a stream key for clip command on Windows.

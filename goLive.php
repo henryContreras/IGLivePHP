@@ -30,10 +30,11 @@ $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlav
 require 'utils.php';
 
 define("scriptVersion", "1.0");
-define("scriptFlavor", "custom");
+define("scriptVersionCode", "25");
+define("scriptFlavor", "beta");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
-if (Utils::checkForUpdate(scriptVersion, scriptFlavor)) {
+if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
     Utils::log("Update: A new update is available, run the `update.php` script to fetch it!");
 }
 
