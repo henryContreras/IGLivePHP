@@ -1,52 +1,66 @@
-<?php
-define("scriptVersion", "0.9");
-if (php_sapi_name() !== "cli") {
-    die("You may only run this script inside of the PHP Command Line! If you did run this in the command line, please report: \"" . php_sapi_name() . "\" to the InstagramLive-PHP Repo!");
-}
+<?php /** @noinspection PhpComposerExtensionStubsInspection */
+/** @noinspection PhpUndefinedConstantInspection */
 
-//Argument Processing
-define("help", in_array("-h", $argv) || in_array("-help", $argv) || in_array("--help", $argv));
-define("bypassCheck", in_array("-b", $argv) || in_array("--bypass-check", $argv));
-define("forceLegacy", in_array("-l", $argv) || in_array("--force-legacy", $argv));
-define("bypassCutoff", in_array("--bypass-cutoff", $argv));
-define("infiniteStream", in_array("-i", $argv), in_array("--infinite-stream", $argv));
-define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
-define("logCommentOutput", in_array("-o", $argv), in_array("--comment-output", $argv));
-define("obsAutomationAccept", in_array("--obs", $argv));
-define("dump", in_array("-d", $argv), in_array("--dump", $argv));
-
-logM("Loading InstagramLive-PHP v" . scriptVersion . "...");
 set_time_limit(0);
 date_default_timezone_set('America/New_York');
-
-if (dump) {
-    dump();
-}
-
-if (help) {
-    logM("Command Line Options:\n
-    -h (--help): Displays this message.\n
-    -b (--bypass-check): Bypasses the OS check. DO NOT USE THIS IF YOU DON'T KNOW WHAT YOU'RE DOING!\n
-    -l (--force-legacy): Forces legacy mode even if you're on Windows.\n
-    --bypass-cutoff: Bypasses hour stream cutoff. This is only suggested if you are verified!\n
-    -i (--infinite-stream): Automatically starts the next stream when the hour cutoff is met.\n
-    -a (--auto-archive): Automatically archives a live stream after it ends.\n
-    -o (--comment-output): Logs comment and like output into a text file.\n
-    --obs: Automatically accepts the OBS prompt.
-    -d (--dump): Forces an error dump for debug purposes.");
-    exit();
+if (php_sapi_name() !== "cli") {
+    die("This script may not be run on a website!");
 }
 
 if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
-    logM("This script requires PHP version 7 or higher! Please update your php installation before attempting to run this script again!");
-    dump();
+    print("This script requires PHP version 7 or higher! Please update your php installation before attempting to run this script again!");
+    exit();
+}
+
+//Argument Processing
+$helpData = [];
+$helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
+$helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypasses the operating system check. Please do not use this if you don't use this if you don't know what you're doing!", "b", "bypass-check");
+$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows users.", "l", "force-legacy");
+$helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
+$helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
+$helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
+$helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
+$helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
+$helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
+$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
+$helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
+
+//Load Utils
+require 'utils.php';
+
+define("scriptVersion", "1.0");
+define("scriptVersionCode", "26");
+define("scriptFlavor", "stable");
+Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
+
+if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
+    Utils::log("Update: A new update is available, run the `update.php` script to fetch it!");
+}
+
+if (dumpFlavor) {
+    Utils::log(scriptFlavor);
+    exit();
+}
+
+if (dump) {
+    Utils::dump();
+    exit();
+}
+
+if (help) {
+    Utils::log("Command Line Arguments:");
+    foreach ($helpData as $option) {
+        $dOption = json_decode($option, true);
+        Utils::log($dOption['tacks']['mini'] . ($dOption['tacks']['full'] !== null ? " (" . $dOption['tacks']['full'] . "): " : ": ") . $dOption['description']);
+    }
     exit();
 }
 
 //Check for required files
-existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
-existsOrError('obs.php', "OBS Integration");
-existsOrError('config.php', "Username & Password Storage");
+Utils::existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
+Utils::existsOrError('obs.php', "OBS Integration");
+Utils::existsOrError('config.php', "Username & Password Storage");
 
 //Load Classes
 require __DIR__ . '/vendor/autoload.php'; //Composer
@@ -74,23 +88,23 @@ main(true, new ObsHelper());
 function main($console, ObsHelper $helper)
 {
     if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
-        logM("Default Username or Password have not been changed! Exiting...");
+        Utils::log("Default Username or Password have not been changed! Exiting...");
         exit();
     }
 
 //Login to Instagram
-    logM("Logging into Instagram, This can take up-to two minutes. Please wait...");
+    Utils::log("Logging into Instagram! Please wait as this can take up-to two minutes...");
     $ig = new ExtendedInstagram(false, false);
     try {
         $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
 
         if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
-            logM("Two-Factor Required! Please check your phone for an SMS Code!");
+            Utils::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
             $twoFactorIdentifier = $loginResponse->getTwoFactorInfo()->getTwoFactorIdentifier();
-            print "\nType your 2FA Code from SMS> ";
+            print "\nType your verification code> ";
             $handle = fopen("php://stdin", "r");
             $verificationCode = trim(fgets($handle));
-            logM("Logging in with 2FA Code...");
+            Utils::log("Logging in with verification token...");
             $ig->finishTwoFactorLogin(IG_USERNAME, IG_PASS, $twoFactorIdentifier, $verificationCode);
         }
     } catch (\Exception $e) {
@@ -99,16 +113,16 @@ function main($console, ObsHelper $helper)
             if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
                 $response = $e->getResponse();
 
-                logM("Your account has been flagged by Instagram. InstagramLive-PHP can attempt to verify your account by a text or an email. Would you like to do that? Type \"yes\" to do so or anything else to not!");
-                logM("Note: If you already did this, and you think you entered the right code, do not attempt this again! Try logging into instagram.com from this same computer or enabling 2FA.");
+                Utils::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
+                Utils::log("Suspicious Login: Please only attempt this once or twice if your attempts are unsuccessful. If this keeps happening, this script is not for you :(.");
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $attemptBypass = trim(fgets($handle));
                 if ($attemptBypass == 'yes') {
-                    logM("Please wait while we prepare to verify your account.");
+                    Utils::log("Preparing to verify account...");
                     sleep(3);
 
-                    logM("Type \"sms\" for text verification or \"email\" for email verification.\nNote: If you do not have a phone number or an email address linked to your account, don't use that method ;) You can also just press enter to abort.");
+                    Utils::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
                     print "> ";
                     $handle = fopen("php://stdin", "r");
                     $choice = trim(fgets($handle));
@@ -117,12 +131,12 @@ function main($console, ObsHelper $helper)
                     } elseif ($choice === "email") {
                         $verification_method = 1;
                     } else {
-                        logM("You have selected an invalid verification type. Aborting!");
+                        Utils::log("Aborting!");
                         exit();
                     }
 
                     /** @noinspection PhpUndefinedMethodInspection */
-                    $checkApiPath = substr($response->getChallenge()->getApiPath(), 1);
+                    $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
                     $customResponse = $ig->request($checkApiPath)
                         ->setNeedsAuth(false)
                         ->addPost('choice', $verification_method)
@@ -136,17 +150,17 @@ function main($console, ObsHelper $helper)
                     try {
                         if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
                             if ($customResponse['action'] === 'close') {
-                                logM("Challenge Bypassed! Run the script again.");
+                                Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
                                 exit();
                             }
                         }
 
-                        logM("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "!");
+                        Utils::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
                         print "> ";
                         $handle = fopen("php://stdin", "r");
                         $cCode = trim(fgets($handle));
                         $ig->changeUser(IG_USERNAME, IG_PASS);
-                        $ig->request($checkApiPath)
+                        $customResponse = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
                             ->addPost('security_code', $cCode)
                             ->addPost('_uuid', $ig->uuid)
@@ -156,37 +170,43 @@ function main($console, ObsHelper $helper)
                             ->addPost('_csrftoken', $ig->client->getToken())
                             ->getDecodedResponse();
 
-                        logM("Provided you entered the correct code, your login attempt has probably been successful. Please try re-running the script!");
-                        exit();
+                        if ($customResponse['status'] === 'ok' && $customResponse['logged_in_user']['pk'] !== null) {
+                            Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
+                            exit();
+                        } else {
+                            Utils::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
+                            exit();
+                        }
                     } catch (Exception $ex) {
-                        echo $ex->getMessage();
-                        exit;
+                        Utils::log("Suspicious Login: Account Challenge Failed :(.");
+                        Utils::dump($ex->getMessage());
+                        exit();
                     }
                 } else {
-                    logM("Account Flagged: Please try logging into instagram.com from this exact computer before trying to run this script again!");
-                    dump();
+                    Utils::log("Suspicious Login: Account Challenge Failed :(.");
+                    Utils::dump();
                     exit();
                 }
             }
         } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
-            echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
-            dump();
+            Utils::log("Error While Logging in to Instagram: " . $e->getMessage());
+            Utils::dump();
             exit();
         }
 
-        echo 'Error While Logging in to Instagram: ' . $e->getMessage() . "\n";
-        dump();
+        Utils::log("Error While Logging in to Instagram: " . $e->getMessage());
+        Utils::dump();
         exit();
     }
 
 //Block Responsible for Creating the Livestream.
     try {
         if (!$ig->isMaybeLoggedIn) {
-            logM("Couldn't Login! Exiting!");
-            dump();
+            Utils::log("Error While Logging in to Instagram: isMaybeLoggedIn fail!");
+            Utils::dump();
             exit();
         }
-        logM("Logged In! Creating Livestream...");
+        Utils::log("Logged In! Creating Livestream...");
         $stream = $ig->live->create();
         $broadcastId = $stream->getBroadcastId();
 
@@ -205,14 +225,11 @@ function main($console, ObsHelper $helper)
 
         $obsAutomation = true;
         if ($helper->obs_path === null) {
-            logM("Disabled OBS Integration (Couldn't Resolve Path): If you have OBS on your computer, please make a ticket on GitHub!");
-            if (!isWindows()) {
-                logM("Additionally, you're not using Windows; Please do not report this since OBS Integration is only supported on Windows!");
-            }
+            Utils::log("OBS Integration: OBS was not detected, disabling!" . (!Utils::isWindows() ? " Please note macOS is not supported!" : " Please make a ticket on GitHub if you have OBS installed."));
             $obsAutomation = false;
         } else {
             if (!obsAutomationAccept) {
-                logM("You are eligible for OBS Integration! Would you like the script to automatically populate your stream url/key into OBS and start streaming for you? Type \"yes\" if you would like to enable OBS Integration or anything else to not.");
+                Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.");
                 print "> ";
                 $eoiH = fopen("php://stdin", "r");
                 $eoi = trim(fgets($eoiH));
@@ -223,40 +240,40 @@ function main($console, ObsHelper $helper)
             }
         }
 
-        logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+        Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
 
-        logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
+        Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
 
         if (!$obsAutomation) {
-            if (isWindows()) {
-                shell_exec("echo " . str_replace("&", "^^^&", $streamKey) . " | clip");
-                logM("Your stream key has been pre-copied to your clipboard.");
+            if (Utils::isWindows()) {
+                shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
             }
         } else {
             if ($helper->isObsRunning()) {
-                logM("Killing OBS...");
+                Utils::log("OBS Integration: Killing OBS...");
                 $helper->killOBS();
             }
             if (!$helper->attempted_settings_save) {
-                logM("Backing-up your old OBS basic.ini...");
+                Utils::log("OBS Integration: Backing-up your old OBS basic.ini...");
                 $helper->saveSettingsState();
             }
-            logM("Loading basic.ini with optimal OBS settings...");
+            Utils::log("OBS Integration: Loading basic.ini with optimal OBS settings...");
             $helper->updateSettingsState();
             if (!$helper->attempted_service_save) {
-                logM("Backing-up your old OBS service.json...");
+                Utils::log("OBS Integration: Backing-up your old OBS service.json...");
                 $helper->saveServiceState();
             }
-            logM("Populating service.json with new stream url & key.");
+            Utils::log("OBS Integration: Populating service.json with new stream url & key.");
             $helper->setServiceState($streamUrl, $streamKey);
-            logM("Re-launching OBS...");
+            Utils::log("OBS Integration: Re-launching OBS...");
             $helper->spawnOBS();
-            logM("Waiting for OBS...");
+            Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
             if ($helper->waitForOBS()) {
                 sleep(1);
-                logM("OBS Launched Successfully! Starting Stream...");
+                Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
             } else {
-                logM("OBS was not detected! Press enter once you confirm OBS is streaming...");
+                Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
                 $oPauseH = fopen("php://stdin", "r");
                 fgets($oPauseH);
                 fclose($oPauseH);
@@ -264,7 +281,7 @@ function main($console, ObsHelper $helper)
         }
 
         if (!$obsAutomation) {
-            logM("Please start streaming to the url and key above! When you start streaming in your streaming application, please press enter!");
+            Utils::log("Please start streaming to the url and key above! Once you are live, please press enter!");
             $pauseH = fopen("php://stdin", "r");
             fgets($pauseH);
             fclose($pauseH);
@@ -272,21 +289,27 @@ function main($console, ObsHelper $helper)
 
         $ig->live->start($broadcastId);
 
-        if ((isWindows() || bypassCheck) && !forceLegacy) {
-            logM("You are using Windows! Therefore, your system supports the viewing of comments and likes!\nThis window will turn into the comment and like view and console output.\nA second window will open which will allow you to dispatch commands!");
+        if (startDisableComments) {
+            Utils::log("Automatically disabled comments.");
+            $ig->live->disableComments($broadcastId);
+        }
+
+        if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
+            Utils::log("Command Line: Windows Detected! A new console will open for command input and this will become command/like output.");
             beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper);
         } else {
-            logM("You are not using Windows! Therefore, the script has been put into legacy mode. New commands may not be added to legacy mode but backend features will remain updated.\nIt is recommended that you use Windows for the full experience!");
-            logM("Live Stream is Ready for Commands:");
+            Utils::log("Command Line: macOS/Linux Detected! The script has entered legacy mode. Please use Windows for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
         }
 
-        logM("Something Went Super Wrong & It would be helpful if you shared the system dump on GitHub! Attempting to At-Least Clean Up this Mess!");
+        Utils::log("Unable to start command lines, attempting clean up!");
         $ig->live->getFinalViewerList($broadcastId);
         $ig->live->end($broadcastId);
+        Utils::dump();
+        exit();
     } catch (\Exception $e) {
         echo 'Error While Creating Livestream: ' . $e->getMessage() . "\n";
-        dump();
+        Utils::dump($e->getMessage());
         exit();
     }
 }
@@ -294,37 +317,32 @@ function main($console, ObsHelper $helper)
 function addLike(User $user)
 {
     $cmt = "@" . $user->getUsername() . " has liked the stream!";
-    logM($cmt);
+    Utils::log($cmt);
     if (logCommentOutput) {
-        logOutput($cmt);
+        Utils::logOutput($cmt);
     }
 }
 
 function addComment(Comment $comment)
 {
     $cmt = "Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText();
-    logM($cmt);
+    Utils::log($cmt);
     if (logCommentOutput) {
-        logOutput($cmt);
+        Utils::logOutput($cmt);
     }
 }
 
 function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper)
 {
-    if (bypassCheck) {
-        logM("You are bypassing the operating system check in an attempt to run the async command line on non-windows devices. THIS IS EXTREMELY UNSUPPORTED AND I DON'T RECOMMEND IT!");
-        logM("That being said, if you cannot start the command line and *need* to end the stream just start the script again without bypassing the check and run the stop command.");
-        logM("You must start commandLine.php manually.");
+    if (bypassCheck && !Utils::isWindows()) {
+        Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
+        Utils::log("Command Line: To start the new command line, please run the commandLine.php script.");
     } else {
         if ($console) {
-            if (autoArchive) {
-                pclose(popen("start \"Command Line Input\" \"" . PHP_BINARY . "\" commandLine.php -a", "r"));
-            } else {
-                pclose(popen("start \"Command Line Input\" \"" . PHP_BINARY . "\" commandLine.php", "r"));
-            }
+            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : ""), "r"));
         }
     }
-    cli_set_process_title("Live Chat and Like Output");
+    cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
     $lastCommentTs = 0;
     $lastLikeTs = 0;
     $lastQuestion = -1;
@@ -338,7 +356,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     @unlink(__DIR__ . '/request');
 
     if (logCommentOutput) {
-        logOutput(PHP_EOL . "--- New Session At Epoch: " . time() . " ---" . PHP_EOL);
+        Utils::logOutput(PHP_EOL . "--- New Session At Epoch: " . time() . " ---" . PHP_EOL);
     }
 
     do {
@@ -352,29 +370,29 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 $values = $request['values'];
                 if ($cmd == 'ecomments') {
                     $ig->live->enableComments($broadcastId);
-                    logM("Enabled Comments!");
+                    Utils::log("Enabled Comments!");
                 } elseif ($cmd == 'dcomments') {
                     $ig->live->disableComments($broadcastId);
-                    logM("Disabled Comments!");
+                    Utils::log("Disabled Comments!");
                 } elseif ($cmd == 'end') {
                     if ($obsAuto) {
-                        logM("Killing OBS...");
+                        Utils::log("OBS Integration: Killing OBS...");
                         $helper->killOBS();
-                        logM("Restoring old basic.ini...");
+                        Utils::log("OBS Integration: Restoring old basic.ini...");
                         $helper->resetSettingsState();
-                        logM("Restoring old service.json...");
+                        Utils::log("OBS Integration: Restoring old service.json...");
                         $helper->resetServiceState();
                     }
                     $archived = $values[0];
-                    logM("Wrapping up and exiting...");
+                    Utils::log("Wrapping up and exiting...");
                     //Needs this to retain, I guess?
                     $ig->live->getFinalViewerList($broadcastId);
                     $ig->live->end($broadcastId);
                     if ($archived == 'yes') {
                         $ig->live->addToPostLive($broadcastId);
-                        logM("Livestream added to Archive!");
+                        Utils::log("Livestream added to Archive!");
                     }
-                    logM("Ended stream!");
+                    Utils::log("Ended stream!");
                     unlink(__DIR__ . '/request');
                     sleep(2);
                     exit();
@@ -384,60 +402,62 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                         is_numeric($commentId) && //Comment IDs only contain numbers
                         strpos($commentId, '-') === false) { //Comment IDs are not negative
                         $ig->live->pinComment($broadcastId, $commentId);
-                        logM("Pinned a comment!");
+                        Utils::log("Pinned a comment!");
                     } else {
-                        logM("You entered an invalid comment id!");
+                        Utils::log("You entered an invalid comment id!");
                     }
                 } elseif ($cmd == 'unpin') {
                     if ($lastCommentPin == -1) {
-                        logM("You have no comment pinned!");
+                        Utils::log("You have no comment pinned!");
                     } else {
                         $ig->live->unpinComment($broadcastId, $lastCommentPin);
-                        logM("Unpinned the pinned comment!");
+                        Utils::log("Unpinned the pinned comment!");
                     }
                 } elseif ($cmd == 'pinned') {
                     if ($lastCommentPin == -1) {
-                        logM("There is no comment pinned!");
+                        Utils::log("There is no comment pinned!");
                     } else {
-                        logM("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
+                        Utils::log("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
                     }
                 } elseif ($cmd == 'comment') {
                     $text = $values[0];
                     if ($text !== "") {
                         $ig->live->comment($broadcastId, $text);
-                        logM("Commented on stream!");
+                        Utils::log("Commented on stream!");
                     } else {
-                        logM("Comments may not be empty!");
+                        Utils::log("Comments may not be empty!");
                     }
                 } elseif ($cmd == 'url') {
-                    logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+                    Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
                 } elseif ($cmd == 'key') {
-                    logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-                    shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
-                    logM("Your stream key has been pre-copied to your clipboard.");
+                    Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+                    if (Utils::isWindows()) {
+                        shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                        Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
+                    }
                 } elseif ($cmd == 'info') {
                     $info = $ig->live->getInfo($broadcastId);
                     $status = $info->getStatus();
                     $muted = var_export($info->is_Messages(), true);
                     $count = $info->getViewerCount();
-                    logM("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
+                    Utils::log("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
                 } elseif ($cmd == 'viewers') {
-                    logM("Viewers:");
+                    Utils::log("Viewers:");
                     $ig->live->getInfo($broadcastId);
                     $vCount = 0;
                     foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                        logM("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                        Utils::log("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
                         $vCount++;
                     }
                     if ($vCount > 0) {
-                        logM("Total Count: " . $vCount);
+                        Utils::log("Total Count: " . $vCount);
                     } else {
-                        logM("There are no live viewers.");
+                        Utils::log("There are no live viewers.");
                     }
                 } elseif ($cmd == 'questions') {
-                    logM("Questions:");
+                    Utils::log("Questions:");
                     foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
-                        logM("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
+                        Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
                     }
                 } elseif ($cmd == 'showquestion') {
                     $questionId = $values[0];
@@ -446,29 +466,29 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                         strpos($questionId, '-') === false) { //Question IDs are not negative
                         $lastQuestion = $questionId;
                         $ig->live->showQuestion($broadcastId, $questionId);
-                        logM("Displayed question!");
+                        Utils::log("Displayed question!");
                     } else {
-                        logM("You entered an invalid question id!");
+                        Utils::log("Invalid question id!");
                     }
                 } elseif ($cmd == 'hidequestion') {
                     if ($lastQuestion == -1) {
-                        logM("You have no question displayed!");
+                        Utils::log("There is no question displayed!");
                     } else {
                         $ig->live->hideQuestion($broadcastId, $lastQuestion);
                         $lastQuestion = -1;
-                        logM("Hid the displayed question!");
+                        Utils::log("Removed the displayed question!");
                     }
                 }
                 unlink(__DIR__ . '/request');
-            } catch (Exception $cmdexc) {
-                echo 'Error While Executing Command: ' . $cmdexc->getMessage() . "\n";
-                dump();
+            } catch (Exception $cmdExc) {
+                echo 'Error While Executing Command: ' . $cmdExc->getMessage() . "\n";
+                Utils::dump($cmdExc->getMessage());
             }
         }
 
         //Process Comments
         $commentsResponse = $ig->live->getComments($broadcastId, $lastCommentTs); //Request comments since the last time we checked
-        $systemComments = $commentsResponse->getSystemComments(); //No idea what system comments are, but we need to so we can track comments
+        $systemComments = $commentsResponse->getSystemComments(); //Metric data about comments and likes
         $comments = $commentsResponse->getComments(); //Get the actual comments from the request we made
         if (!empty($systemComments)) {
             $lastCommentTs = $systemComments[0]->getCreatedAt();
@@ -501,9 +521,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             addLike($user);
         }
 
-        //Calculate Times
+        //Calculate Times for Hour-Cutoff
         if (!bypassCutoff && (time() - $startTime) >= 3480) {
-            logM("Your stream has ended due to Instagram's one hour time limit!");
+            $ig->live->getFinalViewerList($broadcastId);
+            $ig->live->end($broadcastId);
+            Utils::log("Stream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
             if (!autoArchive) {
                 print "Would you like to archive this stream?\n> ";
@@ -511,22 +533,22 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 $archived = trim(fgets($handle));
             }
             if ($archived == 'yes') {
-                logM("Adding to Archive...");
+                Utils::log("Adding to Archive...");
                 $ig->live->addToPostLive($broadcastId);
-                logM("Livestream added to archive!");
+                Utils::log("Livestream added to archive!");
             }
             $restart = "yes";
             if (!infiniteStream) {
-                logM("Would you like to go live again?");
+                Utils::log("Would you like to go live again?");
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $restart = trim(fgets($handle));
             }
             if ($restart == 'yes') {
-                logM("Restarting Livestream!");
+                Utils::log("Restarting Livestream!");
                 main(false, $helper);
             }
-            logM("Stream Ended! Please remember to close the console window!");
+            Utils::log("Stream Ended! Please close the console window!");
             unlink(__DIR__ . '/request');
             sleep(2);
             exit();
@@ -552,129 +574,92 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     $line = trim(fgets($handle));
     if ($line == 'ecomments') {
         $live->enableComments($broadcastId);
-        logM("Enabled Comments!");
+        Utils::log("Enabled Comments!");
     } elseif ($line == 'dcomments') {
         $live->disableComments($broadcastId);
-        logM("Disabled Comments!");
+        Utils::log("Disabled Comments!");
     } elseif ($line == 'stop' || $line == 'end') {
         fclose($handle);
         if ($obsAuto) {
-            logM("Killing OBS...");
+            Utils::log("OBS Integration: Killing OBS...");
             $helper->killOBS();
-            logM("Restoring old basic.ini...");
+            Utils::log("OBS Integration: Restoring old basic.ini...");
             $helper->resetSettingsState();
-            logM("Restoring old service.json...");
+            Utils::log("OBS Integration: Restoring old service.json...");
             $helper->resetServiceState();
         }
         //Needs this to retain, I guess?
         $live->getFinalViewerList($broadcastId);
         $live->end($broadcastId);
-        logM("Stream Ended!");
+        Utils::log("Stream Ended!");
         $archived = "yes";
         if (!autoArchive) {
-            logM("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
+            Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
             print "> ";
             $handle = fopen("php://stdin", "r");
             $archived = trim(fgets($handle));
         }
         if ($archived == 'yes') {
-            logM("Adding to Archive!");
+            Utils::log("Adding to Archive!");
             $live->addToPostLive($broadcastId);
-            logM("Livestream added to archive!");
+            Utils::log("Livestream added to archive!");
         }
-        logM("Wrapping up and exiting...");
+        Utils::log("Wrapping up and exiting...");
         exit();
     } elseif ($line == 'url') {
-        logM("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+        Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
     } elseif ($line == 'key') {
-        logM("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-        if (isWindows()) { //Support Windows (even in legacy mode)
-            shell_exec("echo " . escapeshellarg($streamKey) . " | clip");
-            logM("Your stream key has been pre-copied to your clipboard.");
+        Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+        if (Utils::isWindows()) {
+            shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+            Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
         }
     } elseif ($line == 'info') {
         $info = $live->getInfo($broadcastId);
         $status = $info->getStatus();
         $muted = var_export($info->is_Messages(), true);
         $count = $info->getViewerCount();
-        logM("Info:\nStatus: $status\nMuted: $muted\nViewer Count: $count");
+        Utils::log("Info:\nStatus: $status\nMuted: $muted\nViewer Count: $count");
     } elseif ($line == 'viewers') {
-        logM("Viewers:");
+        Utils::log("Viewers:");
         $live->getInfo($broadcastId);
         foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-            logM("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")");
+            Utils::log("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")");
         }
     } elseif ($line == 'help') {
-        logM("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\nstop - Stops the Live Stream");
+        Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\nstop - Stops the Live Stream");
     } else {
-        logM("Invalid Command. Type \"help\" for help!");
+        Utils::log("Invalid Command. Type \"help\" for help!");
     }
     fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
 
-function dump()
+
+/**
+ * Registers a command line argument to a global variable.
+ * @param array $helpData The array which holds the command data for the help menu.
+ * @param array $argv The array of arguments passed to the script.
+ * @param string $name The name to be used in the global variable.
+ * @param string $description The description of the argument to be used in the help menu.
+ * @param string $tack The mini-tack argument name.
+ * @param string|null $fullTack The full-tack argument name.
+ * @return array The array of help data with the new argument.
+ */
+function registerArgument(array $helpData, array $argv, string $name, string $description, string $tack, string $fullTack = null): array
 {
-    clearstatcache();
-    logM("===========BEGIN DUMP===========");
-    logM("InstagramLive-PHP Version: " . scriptVersion);
-    logM("Operating System: " . PHP_OS);
-    logM("PHP Version: " . PHP_VERSION);
-    logM("PHP Runtime: " . php_sapi_name());
-    logM("PHP Binary: " . PHP_BINARY);
-    logM("Bypassing OS-Check: " . bypassCheck == true ? "true" : "false");
-    //Holy hell php, your type system forced me to do this
-    if (file_exists("composer.lock")) {
-        logM("Composer Lock: true");
-    } else {
-        logM("Composer Lock: false");
+    if ($fullTack !== null) {
+        $fullTack = '--' . $fullTack;
     }
-    if (file_exists("vendor/")) {
-        logM("Vendor Folder: true");
-    } else {
-        logM("Vendor Folder: false");
-    }
-    logM("============END DUMP============");
-}
-
-/**
- * Helper function to check if the current OS is Windows.
- * @return bool Returns true if running Windows.
- */
-function isWindows(): bool
-{
-    return strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-}
-
-/**
- * Logs message to a output file.
- * @param string $message message to be logged to file.
- */
-function logOutput($message)
-{
-    file_put_contents('output.txt', $message . PHP_EOL, FILE_APPEND | LOCK_EX);
-}
-
-/**
- * Checks for a file existance, if it doesn't exist throw a dump and exit the script.
- * @param $path string Path to the file.
- * @param $reason string Reason the file is needed.
- */
-function existsOrError($path, $reason)
-{
-    if (!file_exists($path)) {
-        logM("The following file, `" . $path . "` is required and not found by the script for the following reason: " . $reason);
-        logM("Please make sure you follow the setup guide correctly.");
-        dump();
-        exit();
-    }
-}
-
-/**
- * Logs a message in console but it actually uses new lines.
- * @param string $message message to be logged.
- */
-function logM($message)
-{
-    print $message . "\n";
+    define($name, in_array('-' . $tack, $argv) || in_array($fullTack, $argv));
+    /** @noinspection PhpComposerExtensionStubsInspection */
+    array_push($helpData, json_encode([
+        'name' => $name,
+        'description' => $description,
+        'tacks' => [
+            'mini' => '-' . $tack,
+            'full' => $fullTack
+        ]
+    ]));
+    return $helpData;
 }
