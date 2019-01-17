@@ -6,7 +6,7 @@ Built with [mgp25's amazing Instagram Private API Wrapper for PHP](https://githu
 Please read this **entire** document as it has *very* important information about the script. If you create an issue that can be solved by reading this document, it will be ignored.
 
 # Setup
-It is suggested you watch [this video](https://www.youtube.com/watch?v=mZfzFNZSuQc) for a step-by-step process on how to install this script.
+It is suggested you watch [this video](https://www.youtube.com/watch?v=J6lp8g3zQeE) for a step-by-step process on how to install this script.
 
 1. Install PHP, of course...
 2. [Install Composer](https://getcomposer.org/download/)
@@ -16,7 +16,7 @@ It is suggested you watch [this video](https://www.youtube.com/watch?v=mZfzFNZSu
 6. Edit the `USERNAME` and `PASSWORD` inside of the `config.php` file to your Instagram username/password.
 7. Run the `goLive.php` script. (`php goLive.php`)
 #### Video Tutorial
-If you'd like a video version of this tutorial, see [this video](https://www.youtube.com/watch?v=mZfzFNZSuQc).
+If you'd like a video version of this tutorial, see [this video](https://www.youtube.com/watch?v=J6lp8g3zQeE).
 # OBS-Setup
 If your system does not support OBS integration or you want to see what settings to use for another streaming program, look here.
 1. Set your OBS canvas size to 720x1280. This can be done by going to Settings->Video and editing Base Canvas Resolution to "720x1280".
