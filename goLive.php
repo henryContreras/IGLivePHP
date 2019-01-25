@@ -22,6 +22,7 @@ $helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically 
 $helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
 $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
+$helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
@@ -29,9 +30,9 @@ $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlav
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.0");
-define("scriptVersionCode", "26");
-define("scriptFlavor", "stable");
+define("scriptVersion", "1.1");
+define("scriptVersionCode", "27");
+define("scriptFlavor", "custom");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
@@ -83,7 +84,7 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper());
+main(true, new ObsHelper(!obsNoStream));
 
 function main($console, ObsHelper $helper)
 {
@@ -280,7 +281,7 @@ function main($console, ObsHelper $helper)
             }
         }
 
-        if (!$obsAutomation) {
+        if (!$obsAutomation || obsNoStream) {
             Utils::log("Please start streaming to the url and key above! Once you are live, please press enter!");
             $pauseH = fopen("php://stdin", "r");
             fgets($pauseH);

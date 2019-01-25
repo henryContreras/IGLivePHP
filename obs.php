@@ -9,11 +9,13 @@ class ObsHelper
     public $settings_state;
     public $attempted_service_save;
     public $attempted_settings_save;
+    public $autoStream;
 
     /**
      * Checks for OBS installation and detects service file locations.
+     * @param bool $autoStream Automatically starts streaming in OBS if true.
      */
-    public function __construct()
+    public function __construct(bool $autoStream)
     {
         $this->service_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\service.json";
         $this->settings_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\basic.ini";
@@ -21,6 +23,7 @@ class ObsHelper
         $this->settings_state = null;
         $this->attempted_service_save = false;
         $this->attempted_settings_save = false;
+        $this->autoStream = $autoStream;
 
         clearstatcache();
         if (@file_exists("C:/Program Files/obs-studio/")) {
@@ -127,7 +130,7 @@ class ObsHelper
     public function spawnOBS()
     {
         clearstatcache();
-        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe --startstreaming", "r"));
+        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe" . ($this->autoStream ? " --startstreaming" : ""), "r"));
         return true;
     }
 
