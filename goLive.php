@@ -34,7 +34,7 @@ require 'utils.php';
 
 define("scriptVersion", "1.1");
 define("scriptVersionCode", "27");
-define("scriptFlavor", "custom");
+define("scriptFlavor", "stable");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
