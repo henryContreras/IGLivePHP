@@ -34,7 +34,7 @@ foreach ($release['files'] as $file) {
 logTxt("Checking for config updates...");
 if (file_exists("config.php")) {
     include_once 'config.php';
-    if ((int) configVersionCode < (int) $release['config']['versionCode']) {
+    if ((int)configVersionCode < (int)$release['config']['versionCode']) {
         logTxt("Outdated config version code, updating...");
         file_put_contents("config.php", file_get_contents($release['config']['url']));
         logTxt("Updated config, you'll need to re-populate your config username and password.");
@@ -61,7 +61,7 @@ logTxt("Files Updated!");
 
 if ($composer) {
     logTxt("Detected composer update, re-installing");
-    exec("composer update");
+    exec((file_exists("composer.phar") ? "composer.phar" : "composer") . " update");
 }
 logTxt("InstagramLive-PHP is now up-to-date!");
 
