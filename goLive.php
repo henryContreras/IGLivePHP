@@ -25,6 +25,7 @@ $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatic
 $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
 $helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
+$helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
 
@@ -213,11 +214,11 @@ function main($console, ObsHelper $helper)
         $broadcastId = $stream->getBroadcastId();
 
         // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
-        $streamUploadUrl = preg_replace(
+        $streamUploadUrl = (!useRmtps === true ? preg_replace(
             '#^rtmps://([^/]+?):443/#ui',
             'rtmp://\1:80/',
             $stream->getUploadUrl()
-        );
+        ) : $stream->getUploadUrl());
 
         //Grab the stream url as well as the stream key.
         $split = preg_split("[" . $broadcastId . "]", $streamUploadUrl);
