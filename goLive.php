@@ -23,6 +23,7 @@ $helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically arc
 $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
 $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
+$helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
@@ -84,7 +85,7 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream));
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation));
 
 function main($console, ObsHelper $helper)
 {

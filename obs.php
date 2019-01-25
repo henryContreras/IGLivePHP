@@ -16,8 +16,9 @@ class ObsHelper
     /**
      * Checks for OBS installation and detects service file locations.
      * @param bool $autoStream Automatically starts streaming in OBS if true.
+     * @param bool $disable Disables path check if true.
      */
-    public function __construct(bool $autoStream)
+    public function __construct(bool $autoStream, bool $disable)
     {
         $this->service_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\service.json";
         $this->settings_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\basic.ini";
@@ -27,7 +28,7 @@ class ObsHelper
         $this->attempted_settings_save = false;
         $this->autoStream = $autoStream;
 
-        if (!Utils::isWindows()) {
+        if (!Utils::isWindows() || $disable) {
             $this->obs_path = null;
             return;
         }
