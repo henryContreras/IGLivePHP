@@ -172,7 +172,7 @@ function main($console, ObsHelper $helper)
                             ->addPost('_csrftoken', $ig->client->getToken())
                             ->getDecodedResponse();
 
-                        if ($customResponse['status'] === 'ok' && $customResponse['logged_in_user']['pk'] !== null) {
+                        if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
                             Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
                             exit();
                         } else {
