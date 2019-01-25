@@ -1,5 +1,7 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
+require_once 'utils.php';
+
 class ObsHelper
 {
     public $obs_path;
@@ -25,14 +27,20 @@ class ObsHelper
         $this->attempted_settings_save = false;
         $this->autoStream = $autoStream;
 
+        if (!Utils::isWindows()) {
+            $this->obs_path = null;
+            return;
+        }
+
         clearstatcache();
         if (@file_exists("C:/Program Files/obs-studio/")) {
             $this->obs_path = "C:/Program Files/obs-studio/";
+            return;
         } elseif (@file_exists("C:/Program Files (x86)/obs-studio/")) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
-        } else {
-            $this->obs_path = null; //OBS's path could not be found, the script will disable OBS integration.
+            return;
         }
+        $this->obs_path = null; //OBS's path could not be found, the script will disable OBS integration.
     }
 
     /**
