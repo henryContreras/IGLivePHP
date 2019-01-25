@@ -22,15 +22,18 @@ $helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically 
 $helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
 $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
+$helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
+$helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
+$helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
 
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.0");
-define("scriptVersionCode", "26");
+define("scriptVersion", "1.1");
+define("scriptVersionCode", "27");
 define("scriptFlavor", "stable");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
@@ -83,7 +86,7 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper());
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation));
 
 function main($console, ObsHelper $helper)
 {
@@ -170,7 +173,7 @@ function main($console, ObsHelper $helper)
                             ->addPost('_csrftoken', $ig->client->getToken())
                             ->getDecodedResponse();
 
-                        if ($customResponse['status'] === 'ok' && $customResponse['logged_in_user']['pk'] !== null) {
+                        if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
                             Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
                             exit();
                         } else {
@@ -211,11 +214,11 @@ function main($console, ObsHelper $helper)
         $broadcastId = $stream->getBroadcastId();
 
         // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
-        $streamUploadUrl = preg_replace(
+        $streamUploadUrl = (!useRmtps === true ? preg_replace(
             '#^rtmps://([^/]+?):443/#ui',
             'rtmp://\1:80/',
             $stream->getUploadUrl()
-        );
+        ) : $stream->getUploadUrl());
 
         //Grab the stream url as well as the stream key.
         $split = preg_split("[" . $broadcastId . "]", $streamUploadUrl);
@@ -280,7 +283,7 @@ function main($console, ObsHelper $helper)
             }
         }
 
-        if (!$obsAutomation) {
+        if (!$obsAutomation || obsNoStream) {
             Utils::log("Please start streaming to the url and key above! Once you are live, please press enter!");
             $pauseH = fopen("php://stdin", "r");
             fgets($pauseH);
