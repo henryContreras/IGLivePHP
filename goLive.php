@@ -26,15 +26,24 @@ $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automati
 $helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
 $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
+$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to.", "-stream-sec");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
+
+$streamTotalSec = 0;
+
+foreach ($argv as $curArg) {
+   if (strpos($curArg, '--stream-sec=') !== false) {
+       $streamTotalSec = (int) str_replace('--stream-sec=', '', $curArg);
+   }
+}
 
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.1");
-define("scriptVersionCode", "27");
-define("scriptFlavor", "stable");
+define("scriptVersion", "1.2");
+define("scriptVersionCode", "28");
+define("scriptFlavor", "custom");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
@@ -86,9 +95,9 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation));
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation), $streamTotalSec);
 
-function main($console, ObsHelper $helper)
+function main($console, ObsHelper $helper, $streamTotalSec)
 {
     if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
         Utils::log("Default Username or Password have not been changed! Exiting...");
@@ -299,7 +308,7 @@ function main($console, ObsHelper $helper)
 
         if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
             Utils::log("Command Line: Windows Detected! A new console will open for command input and this will become command/like output.");
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper);
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec);
         } else {
             Utils::log("Command Line: macOS/Linux Detected! The script has entered legacy mode. Please use Windows for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
@@ -335,7 +344,7 @@ function addComment(Comment $comment)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec)
 {
     if (bypassCheck && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
@@ -524,6 +533,28 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             addLike($user);
         }
 
+        //Calculate Times for Limiter Argument
+        if ($streamTotalSec > 0 && (time() - $startTime) >= $streamTotalSec) {
+            $ig->live->getFinalViewerList($broadcastId);
+            $ig->live->end($broadcastId);
+            Utils::log("Stream has ended due to user requested stream limit of $streamTotalSec seconds!");
+            $archived = "yes";
+            if (!autoArchive) {
+                print "Would you like to archive this stream?\n> ";
+                $handle = fopen("php://stdin", "r");
+                $archived = trim(fgets($handle));
+            }
+            if ($archived == 'yes') {
+                Utils::log("Adding to Archive...");
+                $ig->live->addToPostLive($broadcastId);
+                Utils::log("Livestream added to archive!");
+            }
+            Utils::log("Stream Ended! Please close the console window!");
+            @unlink(__DIR__ . '/request');
+            sleep(2);
+            exit();
+        }
+
         //Calculate Times for Hour-Cutoff
         if (!bypassCutoff && (time() - $startTime) >= 3480) {
             $ig->live->getFinalViewerList($broadcastId);
@@ -549,10 +580,10 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
-                main(false, $helper);
+                main(false, $helper, $streamTotalSec);
             }
             Utils::log("Stream Ended! Please close the console window!");
-            unlink(__DIR__ . '/request');
+            @unlink(__DIR__ . '/request');
             sleep(2);
             exit();
         }
