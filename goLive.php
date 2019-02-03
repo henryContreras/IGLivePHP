@@ -33,9 +33,9 @@ $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlav
 $streamTotalSec = 0;
 
 foreach ($argv as $curArg) {
-   if (strpos($curArg, '--stream-sec=') !== false) {
-       $streamTotalSec = (int) str_replace('--stream-sec=', '', $curArg);
-   }
+    if (strpos($curArg, '--stream-sec=') !== false) {
+        $streamTotalSec = (int)str_replace('--stream-sec=', '', $curArg);
+    }
 }
 
 //Load Utils
@@ -535,9 +535,18 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 
         //Calculate Times for Limiter Argument
         if ($streamTotalSec > 0 && (time() - $startTime) >= $streamTotalSec) {
+            if ($obsAuto) {
+                Utils::log("OBS Integration: Killing OBS...");
+                $helper->killOBS();
+                Utils::log("OBS Integration: Restoring old basic.ini...");
+                $helper->resetSettingsState();
+                Utils::log("OBS Integration: Restoring old service.json...");
+                $helper->resetServiceState();
+            }
             $ig->live->getFinalViewerList($broadcastId);
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to user requested stream limit of $streamTotalSec seconds!");
+
             $archived = "yes";
             if (!autoArchive) {
                 print "Would you like to archive this stream?\n> ";
@@ -557,6 +566,14 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 
         //Calculate Times for Hour-Cutoff
         if (!bypassCutoff && (time() - $startTime) >= 3480) {
+            if ($obsAuto) {
+                Utils::log("OBS Integration: Killing OBS...");
+                $helper->killOBS();
+                Utils::log("OBS Integration: Restoring old basic.ini...");
+                $helper->resetSettingsState();
+                Utils::log("OBS Integration: Restoring old service.json...");
+                $helper->resetServiceState();
+            }
             $ig->live->getFinalViewerList($broadcastId);
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to Instagram's one hour time limit!");
