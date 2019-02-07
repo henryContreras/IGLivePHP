@@ -26,15 +26,20 @@ $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automati
 $helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
 $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
-$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to.", "-stream-sec");
+$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
+$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
 
 $streamTotalSec = 0;
+$autoPin = null;
 
 foreach ($argv as $curArg) {
     if (strpos($curArg, '--stream-sec=') !== false) {
         $streamTotalSec = (int)str_replace('--stream-sec=', '', $curArg);
+    }
+    if (strpos($curArg, '--auto-pin=') !== false) {
+        $autoPin = str_replace('_', ' ', str_replace('--auto-pin=', '', $curArg));
     }
 }
 
@@ -95,9 +100,9 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation), $streamTotalSec);
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation), $streamTotalSec, $autoPin);
 
-function main($console, ObsHelper $helper, $streamTotalSec)
+function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 {
     if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
         Utils::log("Default Username or Password have not been changed! Exiting...");
@@ -308,7 +313,7 @@ function main($console, ObsHelper $helper, $streamTotalSec)
 
         if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
             Utils::log("Command Line: Windows Detected! A new console will open for command input and this will become command/like output.");
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec);
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin);
         } else {
             Utils::log("Command Line: macOS/Linux Detected! The script has entered legacy mode. Please use Windows for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
@@ -344,7 +349,7 @@ function addComment(Comment $comment)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, string $autoPin)
 {
     if (bypassCheck && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
@@ -364,6 +369,9 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     $exit = false;
     $startTime = time();
 
+    if ($autoPin !== null) {
+        $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
+    }
 
     @unlink(__DIR__ . '/request');
 
@@ -606,7 +614,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
-                main(false, $helper, $streamTotalSec);
+                main(false, $helper, $streamTotalSec, $autoPin);
             }
             Utils::log("Stream Ended! Please close the console window!");
             @unlink(__DIR__ . '/request');
