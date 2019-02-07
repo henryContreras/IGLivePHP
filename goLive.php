@@ -458,11 +458,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     $ig->live->getInfo($broadcastId);
                     $vCount = 0;
                     foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                        Utils::log("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                        Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
                         $vCount++;
                     }
                     if ($vCount > 0) {
-                        Utils::log("Total Count: " . $vCount);
+                        Utils::log("Total Viewers: " . $vCount);
                     } else {
                         Utils::log("There are no live viewers.");
                     }
@@ -489,6 +489,15 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                         $ig->live->hideQuestion($broadcastId, $lastQuestion);
                         $lastQuestion = -1;
                         Utils::log("Removed the displayed question!");
+                    }
+                } elseif ($cmd == 'wave') {
+                    $viewerId = $values[0];
+                    try {
+                        $ig->live->wave($broadcastId, $viewerId);
+                        Utils::log("Waved at a user!");
+                    } catch (Exception $waveError) {
+                        Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+                        Utils::dump($waveError->getMessage());
                     }
                 }
                 unlink(__DIR__ . '/request');
@@ -605,7 +614,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             exit();
         }
 
-        sleep(2);
+        sleep(1);
     } while (!$exit);
 }
 

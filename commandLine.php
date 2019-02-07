@@ -85,6 +85,14 @@ function newCommand()
     } elseif ($line == 'hidequestion') {
         Utils::log("Please check the other window to make sure the question was removed!");
         sendRequest('hidequestion', null);
+    } elseif ($line == 'wave') {
+        fclose($handle);
+        Utils::log("Please enter the user id you would like to wave at.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $viewerId = trim(fgets($handle));
+        Utils::log("Please check the other window to make sure the person was waved at!");
+        sendRequest('wave', [$viewerId]);
     } elseif ($line == 'help') {
         Utils::log("Commands:\n
         help - Prints this message\n
@@ -101,6 +109,7 @@ function newCommand()
         questions - Shows all questions from the stream\n
         showquestion - Displays question on livestream\n
         hidequestion - Hides displayed question if one is displayed\n
+        wave - Waves at a user who has joined the stream\n
         stop - Stops the Live Stream");
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
