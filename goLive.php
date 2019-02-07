@@ -46,8 +46,8 @@ foreach ($argv as $curArg) {
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.2");
-define("scriptVersionCode", "28");
+define("scriptVersion", "1.2.1");
+define("scriptVersionCode", "29");
 define("scriptFlavor", "stable");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
@@ -349,7 +349,7 @@ function addComment(Comment $comment)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, string $autoPin)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin)
 {
     if (bypassCheck && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
