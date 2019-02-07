@@ -20,8 +20,6 @@ class ObsHelper
      */
     public function __construct(bool $autoStream, bool $disable)
     {
-        $this->service_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\service.json";
-        $this->settings_path = getenv("appdata") . "\obs-studio\basic\profiles\Untitled\basic.ini";
         $this->service_state = null;
         $this->settings_state = null;
         $this->attempted_service_save = false;
@@ -36,12 +34,39 @@ class ObsHelper
         clearstatcache();
         if (@file_exists("C:/Program Files/obs-studio/")) {
             $this->obs_path = "C:/Program Files/obs-studio/";
-            return;
         } elseif (@file_exists("C:/Program Files (x86)/obs-studio/")) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
+        } else {
+            $this->obs_path = null; //OBS's path could not be found, the script will disable OBS integration.
             return;
         }
-        $this->obs_path = null; //OBS's path could not be found, the script will disable OBS integration.
+
+        $profiles = $dirs = array_filter(glob(getenv("appdata") . "\obs-studio\basic\profiles\*"), 'is_dir');
+        $profile = null;
+        if (count($profiles) === 0) {
+            $this->obs_path = null;
+            return;
+        } else if (count($profiles) === 1) {
+            $profile = $profiles[0];
+        } else {
+            Utils::log("OBS Integration: Multi-Profile mode detected! Please select your current OBS profile.");
+            $profileIndex = 0;
+            foreach ($profiles as $curProfile) {
+                Utils::log("[$profileIndex] - " . str_replace(getenv("appdata") . "\obs-studio\basic\profiles\\", '', $curProfile));
+                $profileIndex++;
+            }
+            print "OBS Integration: Type your Profile ID from the above selection...\n>";
+            $handle = fopen("php://stdin", "r");
+            $profileIndex = trim(fgets($handle));
+            @$profile = $profiles[$profileIndex];
+            if ($profile === null) {
+                Utils::log("OBS Integration: Invalid Profile Selection!");
+                $this->obs_path = null;
+                return;
+            }
+        }
+        $this->service_path = "$profile\service.json";
+        $this->settings_path = "$profile\basic.ini";
     }
 
     /**
