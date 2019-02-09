@@ -307,8 +307,13 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         $ig->live->start($broadcastId);
 
         if (startDisableComments) {
-            Utils::log("Automatically disabled comments.");
             $ig->live->disableComments($broadcastId);
+            Utils::log("Automatically Disabled Comments!");
+        }
+
+        if ($autoPin !== null) {
+            $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
+            Utils::log("Automatically Pinned a Comment!");
         }
 
         if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
@@ -368,10 +373,6 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     $lastCommentPinText = '';
     $exit = false;
     $startTime = time();
-
-    if ($autoPin !== null) {
-        $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
-    }
 
     @unlink(__DIR__ . '/request');
 
@@ -691,11 +692,41 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     } elseif ($line == 'viewers') {
         Utils::log("Viewers:");
         $live->getInfo($broadcastId);
+        $vCount = 0;
         foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-            Utils::log("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")");
+            Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+            $vCount++;
+        }
+        if ($vCount > 0) {
+            Utils::log("Total Viewers: " . $vCount);
+        } else {
+            Utils::log("There are no live viewers.");
+        }
+    } elseif ($line == 'wave') {
+        Utils::log("Please enter the user id you would like to wave at.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $viewerId = trim(fgets($handle));
+        try {
+            $live->wave($broadcastId, $viewerId);
+            Utils::log("Waved at a user!");
+        } catch (Exception $waveError) {
+            Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+            Utils::dump($waveError->getMessage());
+        }
+    } elseif ($line == 'comment') {
+        Utils::log("Please enter the text you wish to comment.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $text = trim(fgets($handle));
+        if ($text !== "") {
+            $live->comment($broadcastId, $text);
+            Utils::log("Commented on stream!");
+        } else {
+            Utils::log("Comments may not be empty!");
         }
     } elseif ($line == 'help') {
-        Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\nstop - Stops the Live Stream");
+        Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
     }
