@@ -7,6 +7,7 @@ class ObsHelper
     public $obs_path;
     public $service_path;
     public $settings_path;
+    public $profile_name;
     public $service_state;
     public $settings_state;
     public $attempted_service_save;
@@ -67,6 +68,7 @@ class ObsHelper
         }
         $this->service_path = "$profile\service.json";
         $this->settings_path = "$profile\basic.ini";
+        $this->profile_name = trim(str_replace(getenv("appdata") . "\obs-studio\basic\profiles\\", '', $profile));
     }
 
     /**
@@ -164,7 +166,7 @@ class ObsHelper
     public function spawnOBS()
     {
         clearstatcache();
-        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe" . ($this->autoStream ? " --startstreaming" : ""), "r"));
+        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe" . ($this->autoStream ? " --startstreaming" : "") . " --profile $this->profile_name", "r"));
         return true;
     }
 
