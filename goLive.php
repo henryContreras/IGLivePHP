@@ -28,8 +28,9 @@ $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automati
 $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
+$helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
-$helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
+$helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
 $streamTotalSec = 0;
 $autoPin = null;
@@ -46,8 +47,8 @@ foreach ($argv as $curArg) {
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.2.1");
-define("scriptVersionCode", "29");
+define("scriptVersion", "1.3");
+define("scriptVersionCode", "30");
 define("scriptFlavor", "stable");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
@@ -100,7 +101,7 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation), $streamTotalSec, $autoPin);
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin);
 
 function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 {
@@ -283,22 +284,24 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
             }
             Utils::log("OBS Integration: Populating service.json with new stream url & key.");
             $helper->setServiceState($streamUrl, $streamKey);
-            Utils::log("OBS Integration: Re-launching OBS...");
-            $helper->spawnOBS();
-            Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
-            if ($helper->waitForOBS()) {
-                sleep(1);
-                Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
-            } else {
-                Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                $oPauseH = fopen("php://stdin", "r");
-                fgets($oPauseH);
-                fclose($oPauseH);
+            if (!$helper->slobsPresent) {
+                Utils::log("OBS Integration: Re-launching OBS...");
+                $helper->spawnOBS();
+                Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
+                if ($helper->waitForOBS()) {
+                    sleep(1);
+                    Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
+                } else {
+                    Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
+                    $oPauseH = fopen("php://stdin", "r");
+                    fgets($oPauseH);
+                    fclose($oPauseH);
+                }
             }
         }
 
-        if (!$obsAutomation || obsNoStream) {
-            Utils::log("Please start streaming to the url and key above! Once you are live, please press enter!");
+        if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
+            Utils::log("Please" . ($helper->slobsPresent ? " launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
             $pauseH = fopen("php://stdin", "r");
             fgets($pauseH);
             fclose($pauseH);

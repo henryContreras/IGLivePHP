@@ -13,19 +13,24 @@ class ObsHelper
     public $attempted_service_save;
     public $attempted_settings_save;
     public $autoStream;
+    public $forceSlobs;
+    public $slobsPresent;
 
     /**
      * Checks for OBS installation and detects service file locations.
      * @param bool $autoStream Automatically starts streaming in OBS if true.
      * @param bool $disable Disables path check if true.
+     * @param bool $forceStreamlabs Forces streamlabs obs over normal obs.
      */
-    public function __construct(bool $autoStream, bool $disable)
+    public function __construct(bool $autoStream, bool $disable, bool $forceStreamlabs)
     {
         $this->service_state = null;
         $this->settings_state = null;
         $this->attempted_service_save = false;
         $this->attempted_settings_save = false;
         $this->autoStream = $autoStream;
+        $this->forceSlobs = $forceStreamlabs;
+        $this->slobsPresent = false;
 
         if (!Utils::isWindows() || $disable) {
             $this->obs_path = null;
@@ -33,12 +38,25 @@ class ObsHelper
         }
 
         clearstatcache();
-        if (@file_exists("C:/Program Files/obs-studio/")) {
+        if (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files/obs-studio/";
-        } elseif (@file_exists("C:/Program Files (x86)/obs-studio/")) {
+        } elseif (@file_exists("C:/Program Files (x86)/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
+        } elseif (@file_exists("C:/Program Files/Streamlabs OBS/")) {
+            $this->obs_path = "C:/Program Files/Streamlabs OBS/";
+            $this->slobsPresent = true;
+        } elseif (@file_exists("C:/Program Files (x86)/Streamlabs OBS/")) {
+            $this->obs_path = "C:/Program Files (x86)/Streamlabs OBS/";
+            $this->slobsPresent = true;
         } else {
             $this->obs_path = null; //OBS's path could not be found, the script will disable OBS integration.
+            return;
+        }
+
+        if ($this->slobsPresent) {
+            Utils::log("OBS Integration: StreamLabs-OBS Detected! This script is not able to automatically start streaming; It is recommended you use regular OBS to have all features.");
+            $this->service_path = getenv("appdata") . '\slobs-client\service.json';
+            $this->settings_path = getenv("appdata") . '\slobs-client\basic.ini';
             return;
         }
 
@@ -148,7 +166,7 @@ class ObsHelper
      */
     public function updateSettingsState()
     {
-        @file_put_contents($this->settings_path, "[General]\nName=Untitled\n\n[Video]\nBaseCX=720\nBaseCY=1280\nOutputCX=720\nOutputCY=1280\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4000");
+        @file_put_contents($this->settings_path, "[General]\nName=$this->profile_name\n\n[Video]\nBaseCX=720\nBaseCY=1280\nOutputCX=720\nOutputCY=1280\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4000");
     }
 
     /**
@@ -157,6 +175,9 @@ class ObsHelper
      */
     public function killOBS(): bool
     {
+        if ($this->slobsPresent) {
+            return strpos(shell_exec("taskkill /IM \"crash-handler-process.exe\" /F && taskkill /IM \"crashpad_handler.exe\" /F && taskkill /IM \"Streamlabs OBS.exe\" /F && taskkill /IM obs64.exe /F"), "SUCCESS");
+        }
         return strpos(shell_exec("taskkill /IM obs64.exe /F"), "SUCCESS");
     }
 
@@ -166,6 +187,10 @@ class ObsHelper
     public function spawnOBS()
     {
         clearstatcache();
+        if ($this->slobsPresent) {
+            pclose(popen("cd \"$this->obs_path\" && start /B \"Streamlabs OBS.exe\"", "r"));
+            return true;
+        }
         pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe" . ($this->autoStream ? " --startstreaming" : "") . " --profile $this->profile_name", "r"));
         return true;
     }
