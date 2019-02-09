@@ -28,8 +28,9 @@ $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automati
 $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
+$helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
-$helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps", "-dumpFlavor");
+$helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
 $streamTotalSec = 0;
 $autoPin = null;
@@ -46,8 +47,8 @@ foreach ($argv as $curArg) {
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.2.1");
-define("scriptVersionCode", "29");
+define("scriptVersion", "1.3");
+define("scriptVersionCode", "30");
 define("scriptFlavor", "stable");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
@@ -100,7 +101,7 @@ class ExtendedInstagram extends Instagram
 require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation), $streamTotalSec, $autoPin);
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin);
 
 function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 {
@@ -283,22 +284,24 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
             }
             Utils::log("OBS Integration: Populating service.json with new stream url & key.");
             $helper->setServiceState($streamUrl, $streamKey);
-            Utils::log("OBS Integration: Re-launching OBS...");
-            $helper->spawnOBS();
-            Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
-            if ($helper->waitForOBS()) {
-                sleep(1);
-                Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
-            } else {
-                Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                $oPauseH = fopen("php://stdin", "r");
-                fgets($oPauseH);
-                fclose($oPauseH);
+            if (!$helper->slobsPresent) {
+                Utils::log("OBS Integration: Re-launching OBS...");
+                $helper->spawnOBS();
+                Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
+                if ($helper->waitForOBS()) {
+                    sleep(1);
+                    Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
+                } else {
+                    Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
+                    $oPauseH = fopen("php://stdin", "r");
+                    fgets($oPauseH);
+                    fclose($oPauseH);
+                }
             }
         }
 
-        if (!$obsAutomation || obsNoStream) {
-            Utils::log("Please start streaming to the url and key above! Once you are live, please press enter!");
+        if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
+            Utils::log("Please" . ($helper->slobsPresent ? " launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
             $pauseH = fopen("php://stdin", "r");
             fgets($pauseH);
             fclose($pauseH);
@@ -307,8 +310,13 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         $ig->live->start($broadcastId);
 
         if (startDisableComments) {
-            Utils::log("Automatically disabled comments.");
             $ig->live->disableComments($broadcastId);
+            Utils::log("Automatically Disabled Comments!");
+        }
+
+        if ($autoPin !== null) {
+            $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
+            Utils::log("Automatically Pinned a Comment!");
         }
 
         if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
@@ -349,6 +357,20 @@ function addComment(Comment $comment)
     }
 }
 
+/**
+ * @param \InstagramAPI\Response\Model\User[] $users
+ */
+function parseFinalViewers($users)
+{
+    if (logCommentOutput) {
+        $finalViewers = 'Final Viewers: ';
+        foreach ($users as $user) {
+            $finalViewers = $finalViewers . $user->getUsername() . ', ';
+        }
+        Utils::logOutput($finalViewers);
+    }
+}
+
 function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin)
 {
     if (bypassCheck && !Utils::isWindows()) {
@@ -368,10 +390,6 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     $lastCommentPinText = '';
     $exit = false;
     $startTime = time();
-
-    if ($autoPin !== null) {
-        $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
-    }
 
     @unlink(__DIR__ . '/request');
 
@@ -406,7 +424,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     $archived = $values[0];
                     Utils::log("Wrapping up and exiting...");
                     //Needs this to retain, I guess?
-                    $ig->live->getFinalViewerList($broadcastId);
+                    parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
                     $ig->live->end($broadcastId);
                     if ($archived == 'yes') {
                         $ig->live->addToPostLive($broadcastId);
@@ -560,7 +578,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("OBS Integration: Restoring old service.json...");
                 $helper->resetServiceState();
             }
-            $ig->live->getFinalViewerList($broadcastId);
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to user requested stream limit of $streamTotalSec seconds!");
 
@@ -591,7 +609,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("OBS Integration: Restoring old service.json...");
                 $helper->resetServiceState();
             }
-            $ig->live->getFinalViewerList($broadcastId);
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
@@ -657,7 +675,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
             $helper->resetServiceState();
         }
         //Needs this to retain, I guess?
-        $live->getFinalViewerList($broadcastId);
+        parseFinalViewers($live->getFinalViewerList($broadcastId)->getUsers());
         $live->end($broadcastId);
         Utils::log("Stream Ended!");
         $archived = "yes";
@@ -691,11 +709,41 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     } elseif ($line == 'viewers') {
         Utils::log("Viewers:");
         $live->getInfo($broadcastId);
+        $vCount = 0;
         foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-            Utils::log("@" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")");
+            Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+            $vCount++;
+        }
+        if ($vCount > 0) {
+            Utils::log("Total Viewers: " . $vCount);
+        } else {
+            Utils::log("There are no live viewers.");
+        }
+    } elseif ($line == 'wave') {
+        Utils::log("Please enter the user id you would like to wave at.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $viewerId = trim(fgets($handle));
+        try {
+            $live->wave($broadcastId, $viewerId);
+            Utils::log("Waved at a user!");
+        } catch (Exception $waveError) {
+            Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+            Utils::dump($waveError->getMessage());
+        }
+    } elseif ($line == 'comment') {
+        Utils::log("Please enter the text you wish to comment.");
+        print "> ";
+        $handle = fopen("php://stdin", "r");
+        $text = trim(fgets($handle));
+        if ($text !== "") {
+            $live->comment($broadcastId, $text);
+            Utils::log("Commented on stream!");
+        } else {
+            Utils::log("Comments may not be empty!");
         }
     } elseif ($line == 'help') {
-        Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\nstop - Stops the Live Stream");
+        Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
     }
