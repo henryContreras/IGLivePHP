@@ -1,5 +1,6 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
+require_once 'config.php';
 require_once 'utils.php';
 
 class ObsHelper
@@ -168,23 +169,32 @@ class ObsHelper
     {
         $handle = fopen($this->settings_path, "r");
         $newLines = '';
+        $bitRateTriggered = false;
         if ($handle) {
             while (($line = fgets($handle)) !== false) {
                 if (Utils::startsWith($line, "[")) {
+                    /** @noinspection PhpUnusedLocalVariableInspection */
                     $currentSection = str_replace(']', '', str_replace('[', '', $line));
                 }
 
-                $line = $this->searchAndReplaceSetting($line, 'BaseCX', '720');
-                $line = $this->searchAndReplaceSetting($line, 'BaseCY', '1280');
-                $line = $this->searchAndReplaceSetting($line, 'OutputCX', '720');
-                $line = $this->searchAndReplaceSetting($line, 'OutputCY', '1280');
+                $line = $this->searchAndReplaceSetting($line, 'BaseCX', OBS_X);
+                $line = $this->searchAndReplaceSetting($line, 'BaseCY', OBS_Y);
+                $line = $this->searchAndReplaceSetting($line, 'OutputCX', OBS_X);
+                $line = $this->searchAndReplaceSetting($line, 'OutputCY', OBS_Y);
                 if ($currentSection = 'SimpleOutput') {
-                    $line = $this->searchAndReplaceSetting($line, 'VBitrate', '4000');
+                    $line = $this->searchAndReplaceSetting($line, 'VBitrate', OBS_BITRATE);
+                    if (strpos($line, 'VBitrate') !== false) {
+                        $bitRateTriggered = true;
+                    }
                 }
 
                 $newLines = $newLines . $line;
             }
             fclose($handle);
+
+            if (!$bitRateTriggered) {
+                $newLines = $newLines . "[SimpleOutput]\nVBitrate" . OBS_BITRATE . "\n";
+            }
         } else {
             Utils::log("OBS Integration: Unable to modify settings!");
         }
