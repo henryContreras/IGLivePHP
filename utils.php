@@ -76,6 +76,17 @@ class Utils
     }
 
     /**
+     * Checks to see if characters are at the start of the string.
+     * @param string $haystack The string to for the needle.
+     * @param string $needle The string to search for at the start of haystack.
+     * @return bool Returns true if needle is at start of haystack.
+     */
+    public static function startsWith($haystack, $needle)
+    {
+        return (substr($haystack, 0, strlen($needle)) === $needle);
+    }
+
+    /**
      * Logs a message in console but it actually uses new lines.
      * @param string $message message to be logged.
      */
