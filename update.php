@@ -61,7 +61,7 @@ logTxt("Files Updated!");
 
 if ($composer) {
     logTxt("Detected composer update, re-installing");
-    exec((file_exists("composer.phar") ? "composer.phar" : "composer") . " update");
+    exec((file_exists("composer.phar") ? (PHP_BINARY . " composer.phar") : "composer") . " update");
 }
 logTxt("InstagramLive-PHP is now up-to-date!");
 
