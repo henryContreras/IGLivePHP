@@ -381,7 +381,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : ""), "r"));
         }
     }
-    cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
+    @cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
     $lastCommentTs = 0;
     $lastLikeTs = 0;
     $lastQuestion = -1;
