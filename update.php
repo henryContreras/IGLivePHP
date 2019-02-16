@@ -1,5 +1,10 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
+if (exec(PHP_BINARY . " goLive.php --dumpFlavor") == 'custom') {
+    logTxt("Custom build flavor located! Exiting updater...");
+    exit();
+}
+
 $beta = false;
 if (exec(PHP_BINARY . " goLive.php --dumpFlavor") == 'beta') {
     $beta = true;
