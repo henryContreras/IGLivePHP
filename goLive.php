@@ -47,9 +47,9 @@ foreach ($argv as $curArg) {
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.3");
-define("scriptVersionCode", "30");
-define("scriptFlavor", "stable");
+define("scriptVersion", "1.4");
+define("scriptVersionCode", "31");
+define("scriptFlavor", "custom");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
