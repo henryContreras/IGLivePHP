@@ -29,6 +29,7 @@ $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather th
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
+$helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
@@ -105,7 +106,19 @@ main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $strea
 
 function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 {
-    if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
+    $username = IG_USERNAME;
+    $password = IG_PASS;
+    if (promptLogin) {
+        Utils::log("Please enter your credentials...");
+        print "Username: ";
+        $usernameHandle = fopen("php://stdin", "r");
+        $username = trim(fgets($usernameHandle));
+        print "Password: ";
+        $passwordHandle = fopen("php://stdin", "r");
+        $password = trim(fgets($passwordHandle));
+    }
+
+    if ($username == "USERNAME" || $password == "PASSWORD") {
         Utils::log("Default Username or Password have not been changed! Exiting...");
         exit();
     }
@@ -114,7 +127,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
     Utils::log("Logging into Instagram! Please wait as this can take up-to two minutes...");
     $ig = new ExtendedInstagram(false, false);
     try {
-        $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
+        $loginResponse = $ig->login($username, $password);
 
         if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
             Utils::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
@@ -123,7 +136,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
             $handle = fopen("php://stdin", "r");
             $verificationCode = trim(fgets($handle));
             Utils::log("Logging in with verification token...");
-            $ig->finishTwoFactorLogin(IG_USERNAME, IG_PASS, $twoFactorIdentifier, $verificationCode);
+            $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
         }
     } catch (\Exception $e) {
         try {
@@ -177,7 +190,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                         print "> ";
                         $handle = fopen("php://stdin", "r");
                         $cCode = trim(fgets($handle));
-                        $ig->changeUser(IG_USERNAME, IG_PASS);
+                        $ig->changeUser($username, $password);
                         $customResponse = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
                             ->addPost('security_code', $cCode)
