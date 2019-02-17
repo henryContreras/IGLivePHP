@@ -1,5 +1,6 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
+require_once 'config.php';
 require_once 'utils.php';
 
 class ObsHelper
@@ -68,7 +69,7 @@ class ObsHelper
         } else if (count($profiles) === 1) {
             $profile = $profiles[0];
         } else {
-            Utils::log("OBS Integration: Multi-Profile mode detected! Please select your current OBS profile.");
+            Utils::log("OBS Integration: Multi-Profile environment detected! Please select your current OBS profile.");
             $profileIndex = 0;
             foreach ($profiles as $curProfile) {
                 Utils::log("[$profileIndex] - " . str_replace(getenv("appdata") . "\obs-studio\basic\profiles\\", '', $curProfile));
@@ -166,7 +167,54 @@ class ObsHelper
      */
     public function updateSettingsState()
     {
-        @file_put_contents($this->settings_path, "[General]\nName=$this->profile_name\n\n[Video]\nBaseCX=720\nBaseCY=1280\nOutputCX=720\nOutputCY=1280\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4000");
+        $handle = fopen($this->settings_path, "r");
+        $newLines = '';
+        $bitRateTriggered = false;
+        if ($handle) {
+            while (($line = fgets($handle)) !== false) {
+                if (Utils::startsWith($line, "[")) {
+                    /** @noinspection PhpUnusedLocalVariableInspection */
+                    $currentSection = str_replace(']', '', str_replace('[', '', $line));
+                }
+
+                $line = $this->searchAndReplaceSetting($line, 'BaseCX', OBS_X);
+                $line = $this->searchAndReplaceSetting($line, 'BaseCY', OBS_Y);
+                $line = $this->searchAndReplaceSetting($line, 'OutputCX', OBS_X);
+                $line = $this->searchAndReplaceSetting($line, 'OutputCY', OBS_Y);
+                if ($currentSection = 'SimpleOutput') {
+                    $line = $this->searchAndReplaceSetting($line, 'VBitrate', OBS_BITRATE);
+                    if (strpos($line, 'VBitrate') !== false) {
+                        $bitRateTriggered = true;
+                    }
+                }
+
+                $newLines = $newLines . $line;
+            }
+            fclose($handle);
+
+            if (!$bitRateTriggered) {
+                $newLines = $newLines . "[SimpleOutput]\nVBitrate" . OBS_BITRATE . "\n";
+            }
+        } else {
+            Utils::log("OBS Integration: Unable to modify settings!");
+        }
+
+        @file_put_contents($this->settings_path, $newLines);
+    }
+
+    /**
+     * Searches for setting in obs basic.ini and replaces its value.
+     * @param string $haystack The line to search.
+     * @param string $setting The setting to search for.
+     * @param string $value The replacement value for the setting.
+     * @return string The modified line.
+     */
+    private function searchAndReplaceSetting($haystack, $setting, $value)
+    {
+        if (Utils::startsWith($haystack, $setting)) {
+            $haystack = "$setting=$value\n";
+        }
+        return $haystack;
     }
 
     /**

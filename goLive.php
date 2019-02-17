@@ -29,6 +29,7 @@ $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather th
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
+$helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
@@ -47,8 +48,8 @@ foreach ($argv as $curArg) {
 //Load Utils
 require 'utils.php';
 
-define("scriptVersion", "1.3");
-define("scriptVersionCode", "30");
+define("scriptVersion", "1.4");
+define("scriptVersionCode", "31");
 define("scriptFlavor", "stable");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
@@ -105,7 +106,21 @@ main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $strea
 
 function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 {
-    if (IG_USERNAME == "USERNAME" || IG_PASS == "PASSWORD") {
+    $username = IG_USERNAME;
+    $password = IG_PASS;
+    if (promptLogin) {
+        Utils::log("Please enter your credentials...");
+        print "Username: ";
+        $usernameHandle = fopen("php://stdin", "r");
+        $username = trim(fgets($usernameHandle));
+        fclose($usernameHandle);
+        print "Password: ";
+        $passwordHandle = fopen("php://stdin", "r");
+        $password = trim(fgets($passwordHandle));
+        fclose($passwordHandle);
+    }
+
+    if ($username == "USERNAME" || $password == "PASSWORD") {
         Utils::log("Default Username or Password have not been changed! Exiting...");
         exit();
     }
@@ -114,7 +129,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
     Utils::log("Logging into Instagram! Please wait as this can take up-to two minutes...");
     $ig = new ExtendedInstagram(false, false);
     try {
-        $loginResponse = $ig->login(IG_USERNAME, IG_PASS);
+        $loginResponse = $ig->login($username, $password);
 
         if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
             Utils::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
@@ -122,8 +137,9 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
             print "\nType your verification code> ";
             $handle = fopen("php://stdin", "r");
             $verificationCode = trim(fgets($handle));
+            fclose($handle);
             Utils::log("Logging in with verification token...");
-            $ig->finishTwoFactorLogin(IG_USERNAME, IG_PASS, $twoFactorIdentifier, $verificationCode);
+            $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
         }
     } catch (\Exception $e) {
         try {
@@ -136,6 +152,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $attemptBypass = trim(fgets($handle));
+                fclose($handle);
                 if ($attemptBypass == 'yes') {
                     Utils::log("Preparing to verify account...");
                     sleep(3);
@@ -144,6 +161,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                     print "> ";
                     $handle = fopen("php://stdin", "r");
                     $choice = trim(fgets($handle));
+                    fclose($handle);
                     if ($choice === "sms") {
                         $verification_method = 0;
                     } elseif ($choice === "email") {
@@ -177,7 +195,8 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                         print "> ";
                         $handle = fopen("php://stdin", "r");
                         $cCode = trim(fgets($handle));
-                        $ig->changeUser(IG_USERNAME, IG_PASS);
+                        fclose($handle);
+                        $ig->changeUser($username, $password);
                         $customResponse = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
                             ->addPost('security_code', $cCode)
@@ -251,10 +270,10 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                 print "> ";
                 $eoiH = fopen("php://stdin", "r");
                 $eoi = trim(fgets($eoiH));
+                fclose($eoiH);
                 if ($eoi !== "yes") {
                     $obsAutomation = false;
                 }
-                fclose($eoiH);
             }
         }
 
@@ -348,9 +367,9 @@ function addLike(User $user)
     }
 }
 
-function addComment(Comment $comment)
+function addComment(Comment $comment, bool $system = false)
 {
-    $cmt = "Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText();
+    $cmt = ($system ? "" : ("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": ")) . $comment->getText();
     Utils::log($cmt);
     if (logCommentOutput) {
         Utils::logOutput($cmt);
@@ -381,7 +400,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : ""), "r"));
         }
     }
-    cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
+    @cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
     $lastCommentTs = 0;
     $lastLikeTs = 0;
     $lastQuestion = -1;
@@ -558,6 +577,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 addComment($comment);
             }
         }
+        if (!empty($systemComments)) {
+            foreach ($systemComments as $systemComment) {
+                addComment($systemComment, true);
+            }
+        }
 
         //Process Likes
         $ig->live->getHeartbeatAndViewerCount($broadcastId); //Maintain :clap: comments :clap: and :clap: likes :clap: after :clap: stream
@@ -587,6 +611,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 print "Would you like to archive this stream?\n> ";
                 $handle = fopen("php://stdin", "r");
                 $archived = trim(fgets($handle));
+                fclose($handle);
             }
             if ($archived == 'yes') {
                 Utils::log("Adding to Archive...");
@@ -617,6 +642,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 print "Would you like to archive this stream?\n> ";
                 $handle = fopen("php://stdin", "r");
                 $archived = trim(fgets($handle));
+                fclose($handle);
             }
             if ($archived == 'yes') {
                 Utils::log("Adding to Archive...");
@@ -629,6 +655,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $restart = trim(fgets($handle));
+                fclose($handle);
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
@@ -658,6 +685,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     print "\n> ";
     $handle = fopen("php://stdin", "r");
     $line = trim(fgets($handle));
+    fclose($handle);
     if ($line == 'ecomments') {
         $live->enableComments($broadcastId);
         Utils::log("Enabled Comments!");
@@ -684,6 +712,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
             print "> ";
             $handle = fopen("php://stdin", "r");
             $archived = trim(fgets($handle));
+            fclose($handle);
         }
         if ($archived == 'yes') {
             Utils::log("Adding to Archive!");
@@ -724,6 +753,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         print "> ";
         $handle = fopen("php://stdin", "r");
         $viewerId = trim(fgets($handle));
+        fclose($handle);
         try {
             $live->wave($broadcastId, $viewerId);
             Utils::log("Waved at a user!");
@@ -736,6 +766,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         print "> ";
         $handle = fopen("php://stdin", "r");
         $text = trim(fgets($handle));
+        fclose($handle);
         if ($text !== "") {
             $live->comment($broadcastId, $text);
             Utils::log("Commented on stream!");
@@ -747,7 +778,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
     }
-    fclose($handle);
+    @fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
 

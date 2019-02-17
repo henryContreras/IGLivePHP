@@ -1,5 +1,10 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
+if (exec(PHP_BINARY . " goLive.php --dumpFlavor") == 'custom') {
+    logTxt("Custom build flavor located! Exiting updater...");
+    exit();
+}
+
 $beta = false;
 if (exec(PHP_BINARY . " goLive.php --dumpFlavor") == 'beta') {
     $beta = true;
@@ -45,24 +50,31 @@ if (file_exists("config.php")) {
     logTxt("Downloaded config!");
 }
 
-if (count($queue) == 0) {
-    logTxt("All files up to date!");
-    exit();
-}
-
-logTxt("Updating " . count($queue) . " files...");
-foreach ($queue as $file) {
-    if ($file == 'composer.json') {
-        $composer = true;
+if (count($queue) != 0) {
+    logTxt("Updating " . count($queue) . " files...");
+    foreach ($queue as $file) {
+        if ($file == 'composer.json') {
+            $composer = true;
+        }
+        file_put_contents($file, file_get_contents($release['links'][$file]));
     }
-    file_put_contents($file, file_get_contents($release['links'][$file]));
+    logTxt("Files Updated!");
 }
-logTxt("Files Updated!");
 
 if ($composer) {
     logTxt("Detected composer update, re-installing");
-    exec((file_exists("composer.phar") ? "composer.phar" : "composer") . " update");
+    exec((file_exists("composer.phar") ? (PHP_BINARY . " composer.phar") : "composer") . " update");
 }
+
+if (!file_exists("vendor/") || $composer) {
+    logTxt($composer ? "Detected composer update, re-installing..." : "No vendor folder detected, attempting to recover...");
+    exec((file_exists("composer.phar") ? (PHP_BINARY . " composer.phar") : "composer") . " update");
+    if (!file_exists("vendor/")) {
+        logTxt("Composer install was unsuccessful! Please make sure composer is ACTUALLY INSTALLED!");
+        exit();
+    }
+}
+
 logTxt("InstagramLive-PHP is now up-to-date!");
 
 function logTxt($message)
