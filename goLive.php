@@ -113,9 +113,11 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         print "Username: ";
         $usernameHandle = fopen("php://stdin", "r");
         $username = trim(fgets($usernameHandle));
+        fclose($usernameHandle);
         print "Password: ";
         $passwordHandle = fopen("php://stdin", "r");
         $password = trim(fgets($passwordHandle));
+        fclose($passwordHandle);
     }
 
     if ($username == "USERNAME" || $password == "PASSWORD") {
@@ -135,6 +137,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
             print "\nType your verification code> ";
             $handle = fopen("php://stdin", "r");
             $verificationCode = trim(fgets($handle));
+            fclose($handle);
             Utils::log("Logging in with verification token...");
             $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
         }
@@ -149,6 +152,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $attemptBypass = trim(fgets($handle));
+                fclose($handle);
                 if ($attemptBypass == 'yes') {
                     Utils::log("Preparing to verify account...");
                     sleep(3);
@@ -157,6 +161,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                     print "> ";
                     $handle = fopen("php://stdin", "r");
                     $choice = trim(fgets($handle));
+                    fclose($handle);
                     if ($choice === "sms") {
                         $verification_method = 0;
                     } elseif ($choice === "email") {
@@ -190,6 +195,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                         print "> ";
                         $handle = fopen("php://stdin", "r");
                         $cCode = trim(fgets($handle));
+                        fclose($handle);
                         $ig->changeUser($username, $password);
                         $customResponse = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
@@ -264,10 +270,10 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                 print "> ";
                 $eoiH = fopen("php://stdin", "r");
                 $eoi = trim(fgets($eoiH));
+                fclose($eoiH);
                 if ($eoi !== "yes") {
                     $obsAutomation = false;
                 }
-                fclose($eoiH);
             }
         }
 
@@ -605,6 +611,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 print "Would you like to archive this stream?\n> ";
                 $handle = fopen("php://stdin", "r");
                 $archived = trim(fgets($handle));
+                fclose($handle);
             }
             if ($archived == 'yes') {
                 Utils::log("Adding to Archive...");
@@ -635,6 +642,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 print "Would you like to archive this stream?\n> ";
                 $handle = fopen("php://stdin", "r");
                 $archived = trim(fgets($handle));
+                fclose($handle);
             }
             if ($archived == 'yes') {
                 Utils::log("Adding to Archive...");
@@ -647,6 +655,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 print "> ";
                 $handle = fopen("php://stdin", "r");
                 $restart = trim(fgets($handle));
+                fclose($handle);
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
@@ -676,6 +685,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     print "\n> ";
     $handle = fopen("php://stdin", "r");
     $line = trim(fgets($handle));
+    fclose($handle);
     if ($line == 'ecomments') {
         $live->enableComments($broadcastId);
         Utils::log("Enabled Comments!");
@@ -702,6 +712,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
             print "> ";
             $handle = fopen("php://stdin", "r");
             $archived = trim(fgets($handle));
+            fclose($handle);
         }
         if ($archived == 'yes') {
             Utils::log("Adding to Archive!");
@@ -742,6 +753,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         print "> ";
         $handle = fopen("php://stdin", "r");
         $viewerId = trim(fgets($handle));
+        fclose($handle);
         try {
             $live->wave($broadcastId, $viewerId);
             Utils::log("Waved at a user!");
@@ -754,6 +766,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         print "> ";
         $handle = fopen("php://stdin", "r");
         $text = trim(fgets($handle));
+        fclose($handle);
         if ($text !== "") {
             $live->comment($broadcastId, $text);
             Utils::log("Commented on stream!");
@@ -765,7 +778,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
     }
-    fclose($handle);
+    @fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
 
