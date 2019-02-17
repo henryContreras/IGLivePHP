@@ -361,9 +361,9 @@ function addLike(User $user)
     }
 }
 
-function addComment(Comment $comment)
+function addComment(Comment $comment, bool $system = false)
 {
-    $cmt = "Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": " . $comment->getText();
+    $cmt = ($system ? "" : ("Comment [ID " . $comment->getPk() . "] @" . $comment->getUser()->getUsername() . ": ")) . $comment->getText();
     Utils::log($cmt);
     if (logCommentOutput) {
         Utils::logOutput($cmt);
@@ -569,6 +569,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         if (!empty($comments)) {
             foreach ($comments as $comment) {
                 addComment($comment);
+            }
+        }
+        if (!empty($systemComments)) {
+            foreach ($systemComments as $systemComment) {
+                addComment($systemComment, true);
             }
         }
 
