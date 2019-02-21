@@ -46,7 +46,7 @@ foreach ($argv as $curArg) {
 }
 
 //Load Utils
-require 'utils.php';
+require_once 'utils.php';
 
 define("scriptVersion", "1.5");
 define("scriptVersionCode", "32");
@@ -82,8 +82,8 @@ Utils::existsOrError('obs.php', "OBS Integration");
 Utils::existsOrError('config.php', "Username & Password Storage");
 
 //Load Classes
-require __DIR__ . '/vendor/autoload.php'; //Composer
-require 'obs.php'; //OBS Utils
+require_once __DIR__ . '/vendor/autoload.php'; //Composer
+require_once 'obs.php'; //OBS Utils
 
 use InstagramAPI\Instagram;
 use InstagramAPI\Exception\ChallengeRequiredException;
