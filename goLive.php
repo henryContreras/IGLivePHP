@@ -347,7 +347,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         }
 
         Utils::log("Unable to start command lines, attempting clean up!");
-        $ig->live->getFinalViewerList($broadcastId);
+        parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
         $ig->live->end($broadcastId);
         Utils::dump();
         exit();
@@ -381,12 +381,23 @@ function addComment(Comment $comment, bool $system = false)
  */
 function parseFinalViewers($users)
 {
+    $finalViewers = '';
+    $finalViewersCount = 0;
+    foreach ($users as $user) {
+        $finalViewers = $finalViewers . '@' . $user->getUsername() . ', ';
+        $finalViewersCount++;
+    }
+    $finalViewers = rtrim($finalViewers, " ,");
+
+    if ($finalViewers !== '') {
+        Utils::log("$finalViewersCount Final Viewer(s): $finalViewers");
+    } else {
+        Utils::log("Your stream had no viewers :(");
+    }
+
+
     if (logCommentOutput) {
-        $finalViewers = 'Final Viewers: ';
-        foreach ($users as $user) {
-            $finalViewers = $finalViewers . $user->getUsername() . ', ';
-        }
-        Utils::logOutput($finalViewers);
+        Utils::logOutput("$finalViewersCount Final Viewer(s): $finalViewers");
     }
 }
 
