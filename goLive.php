@@ -213,14 +213,14 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 
         $ig->live->start($broadcastId);
 
-        if (startDisableComments) {
-            $ig->live->disableComments($broadcastId);
-            Utils::log("Automatically Disabled Comments!");
-        }
-
         if ($autoPin !== null) {
             $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
             Utils::log("Automatically Pinned a Comment!");
+        }
+
+        if (startDisableComments) {
+            $ig->live->disableComments($broadcastId);
+            Utils::log("Automatically Disabled Comments!");
         }
 
         if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
