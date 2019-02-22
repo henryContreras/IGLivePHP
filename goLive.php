@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */
+<?php
+/** @noinspection PhpComposerExtensionStubsInspection */
 /** @noinspection PhpUndefinedConstantInspection */
 
 set_time_limit(0);
@@ -694,7 +695,6 @@ function registerArgument(array $helpData, array $argv, string $name, string $de
         $fullTack = '--' . $fullTack;
     }
     define($name, in_array('-' . $tack, $argv) || in_array($fullTack, $argv));
-    /** @noinspection PhpComposerExtensionStubsInspection */
     array_push($helpData, json_encode([
         'name' => $name,
         'description' => $description,
