@@ -346,7 +346,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                         Utils::log("Livestream added to Archive!");
                     }
                     Utils::log("Ended stream!");
-                    unlink(__DIR__ . '/request');
+                    @unlink(__DIR__ . '/request');
                     sleep(2);
                     exit();
                 } elseif ($cmd == 'pin') {
@@ -441,7 +441,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                         Utils::dump($waveError->getMessage());
                     }
                 }
-                unlink(__DIR__ . '/request');
+                @unlink(__DIR__ . '/request');
             } catch (Exception $cmdExc) {
                 echo 'Error While Executing Command: ' . $cmdExc->getMessage() . "\n";
                 Utils::dump($cmdExc->getMessage());
