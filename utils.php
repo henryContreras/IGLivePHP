@@ -122,29 +122,57 @@ class Utils
                     $handle = fopen("php://stdin", "r");
                     $attemptBypass = trim(fgets($handle));
                     fclose($handle);
-                    if ($attemptBypass == 'yes') {
-                        self::log("Preparing to verify account...");
-                        sleep(3);
+                    if ($attemptBypass !== 'yes') {
+                        self::log("Suspicious Login: Account Challenge Failed :(.");
+                        self::dump();
+                        exit();
+                    }
+                    self::log("Preparing to verify account...");
+                    sleep(3);
 
-                        self::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
-                        print "> ";
-                        $handle = fopen("php://stdin", "r");
-                        $choice = trim(fgets($handle));
-                        fclose($handle);
-                        if ($choice === "sms") {
-                            $verification_method = 0;
-                        } elseif ($choice === "email") {
-                            $verification_method = 1;
-                        } else {
-                            self::log("Aborting!");
-                            exit();
+                    self::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
+                    print "> ";
+                    $handle = fopen("php://stdin", "r");
+                    $choice = trim(fgets($handle));
+                    fclose($handle);
+                    if ($choice === "sms") {
+                        $verification_method = 0;
+                    } elseif ($choice === "email") {
+                        $verification_method = 1;
+                    } else {
+                        self::log("Aborting!");
+                        exit();
+                    }
+
+                    /** @noinspection PhpUndefinedMethodInspection */
+                    $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
+                    $customResponse = $ig->request($checkApiPath)
+                        ->setNeedsAuth(false)
+                        ->addPost('choice', $verification_method)
+                        ->addPost('_uuid', $ig->uuid)
+                        ->addPost('guid', $ig->uuid)
+                        ->addPost('device_id', $ig->device_id)
+                        ->addPost('_uid', $ig->account_id)
+                        ->addPost('_csrftoken', $ig->client->getToken())
+                        ->getDecodedResponse();
+
+                    try {
+                        if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
+                            if ($customResponse['action'] === 'close') {
+                                self::log("Suspicious Login: Account challenge successful, please re-run the script!");
+                                exit();
+                            }
                         }
 
-                        /** @noinspection PhpUndefinedMethodInspection */
-                        $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
+                        self::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
+                        print "> ";
+                        $handle = fopen("php://stdin", "r");
+                        $cCode = trim(fgets($handle));
+                        fclose($handle);
+                        $ig->changeUser($username, $password);
                         $customResponse = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
-                            ->addPost('choice', $verification_method)
+                            ->addPost('security_code', $cCode)
                             ->addPost('_uuid', $ig->uuid)
                             ->addPost('guid', $ig->uuid)
                             ->addPost('device_id', $ig->device_id)
@@ -152,45 +180,16 @@ class Utils
                             ->addPost('_csrftoken', $ig->client->getToken())
                             ->getDecodedResponse();
 
-                        try {
-                            if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
-                                if ($customResponse['action'] === 'close') {
-                                    self::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                                    exit();
-                                }
-                            }
-
-                            self::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
-                            print "> ";
-                            $handle = fopen("php://stdin", "r");
-                            $cCode = trim(fgets($handle));
-                            fclose($handle);
-                            $ig->changeUser($username, $password);
-                            $customResponse = $ig->request($checkApiPath)
-                                ->setNeedsAuth(false)
-                                ->addPost('security_code', $cCode)
-                                ->addPost('_uuid', $ig->uuid)
-                                ->addPost('guid', $ig->uuid)
-                                ->addPost('device_id', $ig->device_id)
-                                ->addPost('_uid', $ig->account_id)
-                                ->addPost('_csrftoken', $ig->client->getToken())
-                                ->getDecodedResponse();
-
-                            if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
-                                self::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                                exit();
-                            } else {
-                                self::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
-                                exit();
-                            }
-                        } catch (Exception $ex) {
-                            self::log("Suspicious Login: Account Challenge Failed :(.");
-                            self::dump($ex->getMessage());
+                        if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
+                            self::log("Suspicious Login: Account challenge successful, please re-run the script!");
+                            exit();
+                        } else {
+                            self::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
                             exit();
                         }
-                    } else {
+                    } catch (Exception $ex) {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
-                        self::dump();
+                        self::dump($ex->getMessage());
                         exit();
                     }
                 }
