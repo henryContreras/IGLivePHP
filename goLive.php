@@ -86,18 +86,9 @@ require_once __DIR__ . '/vendor/autoload.php'; //Composer
 require_once 'obs.php'; //OBS Utils
 
 use InstagramAPI\Instagram;
-use InstagramAPI\Exception\ChallengeRequiredException;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
-
-class ExtendedInstagram extends Instagram
-{
-    public function changeUser($username, $password)
-    {
-        $this->_setUser($username, $password);
-    }
-}
 
 require_once 'config.php';
 
@@ -127,114 +118,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 
 //Login to Instagram
     Utils::log("Logging into Instagram! Please wait as this can take up-to two minutes...");
-    $ig = new ExtendedInstagram(false, false);
-    try {
-        $loginResponse = $ig->login($username, $password);
-
-        if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
-            Utils::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
-            $twoFactorIdentifier = $loginResponse->getTwoFactorInfo()->getTwoFactorIdentifier();
-            print "\nType your verification code> ";
-            $handle = fopen("php://stdin", "r");
-            $verificationCode = trim(fgets($handle));
-            fclose($handle);
-            Utils::log("Logging in with verification token...");
-            $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
-        }
-    } catch (\Exception $e) {
-        try {
-            /** @noinspection PhpUndefinedMethodInspection */
-            if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
-                $response = $e->getResponse();
-
-                Utils::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
-                Utils::log("Suspicious Login: Please only attempt this once or twice if your attempts are unsuccessful. If this keeps happening, this script is not for you :(.");
-                print "> ";
-                $handle = fopen("php://stdin", "r");
-                $attemptBypass = trim(fgets($handle));
-                fclose($handle);
-                if ($attemptBypass == 'yes') {
-                    Utils::log("Preparing to verify account...");
-                    sleep(3);
-
-                    Utils::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
-                    print "> ";
-                    $handle = fopen("php://stdin", "r");
-                    $choice = trim(fgets($handle));
-                    fclose($handle);
-                    if ($choice === "sms") {
-                        $verification_method = 0;
-                    } elseif ($choice === "email") {
-                        $verification_method = 1;
-                    } else {
-                        Utils::log("Aborting!");
-                        exit();
-                    }
-
-                    /** @noinspection PhpUndefinedMethodInspection */
-                    $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
-                    $customResponse = $ig->request($checkApiPath)
-                        ->setNeedsAuth(false)
-                        ->addPost('choice', $verification_method)
-                        ->addPost('_uuid', $ig->uuid)
-                        ->addPost('guid', $ig->uuid)
-                        ->addPost('device_id', $ig->device_id)
-                        ->addPost('_uid', $ig->account_id)
-                        ->addPost('_csrftoken', $ig->client->getToken())
-                        ->getDecodedResponse();
-
-                    try {
-                        if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
-                            if ($customResponse['action'] === 'close') {
-                                Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                                exit();
-                            }
-                        }
-
-                        Utils::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
-                        print "> ";
-                        $handle = fopen("php://stdin", "r");
-                        $cCode = trim(fgets($handle));
-                        fclose($handle);
-                        $ig->changeUser($username, $password);
-                        $customResponse = $ig->request($checkApiPath)
-                            ->setNeedsAuth(false)
-                            ->addPost('security_code', $cCode)
-                            ->addPost('_uuid', $ig->uuid)
-                            ->addPost('guid', $ig->uuid)
-                            ->addPost('device_id', $ig->device_id)
-                            ->addPost('_uid', $ig->account_id)
-                            ->addPost('_csrftoken', $ig->client->getToken())
-                            ->getDecodedResponse();
-
-                        if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
-                            Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                            exit();
-                        } else {
-                            Utils::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
-                            exit();
-                        }
-                    } catch (Exception $ex) {
-                        Utils::log("Suspicious Login: Account Challenge Failed :(.");
-                        Utils::dump($ex->getMessage());
-                        exit();
-                    }
-                } else {
-                    Utils::log("Suspicious Login: Account Challenge Failed :(.");
-                    Utils::dump();
-                    exit();
-                }
-            }
-        } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
-            Utils::log("Error While Logging in to Instagram: " . $e->getMessage());
-            Utils::dump();
-            exit();
-        }
-
-        Utils::log("Error While Logging in to Instagram: " . $e->getMessage());
-        Utils::dump();
-        exit();
-    }
+    $ig = Utils::loginFlow($username, $password);
 
 //Block Responsible for Creating the Livestream.
     try {

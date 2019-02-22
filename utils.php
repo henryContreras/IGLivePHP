@@ -1,4 +1,13 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */ /** @noinspection PhpUndefinedConstantInspection */
+<?php
+
+/** @noinspection PhpUndefinedConstantInspection */
+
+/** @noinspection PhpComposerExtensionStubsInspection */
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+use InstagramAPI\Exception\ChallengeRequiredException;
+use InstagramAPI\Instagram;
 
 class Utils
 {
@@ -7,8 +16,9 @@ class Utils
         if ($flavor == "custom") {
             return false;
         }
-        return (int) json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/$flavor.json"), true)['versionCode'] > (int) $current;
+        return (int)json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/$flavor.json"), true)['versionCode'] > (int)$current;
     }
+
     /**
      * Sanitizes a stream key for clip command on Windows.
      * @param string $streamKey The stream key to sanitize.
@@ -26,20 +36,20 @@ class Utils
     public static function dump(string $exception = null)
     {
         clearstatcache();
-        Utils::log("===========BEGIN DUMP===========");
-        Utils::log("InstagramLive-PHP Version: " . scriptVersion);
-        Utils::log("InstagramLive-PHP Flavor: " . scriptFlavor);
-        Utils::log("Operating System: " . PHP_OS);
-        Utils::log("PHP Version: " . PHP_VERSION);
-        Utils::log("PHP Runtime: " . php_sapi_name());
-        Utils::log("PHP Binary: " . PHP_BINARY);
-        Utils::log("Bypassing OS-Check: " . (bypassCheck == true ? "true" : "false"));
-        Utils::log("Composer Lock: " . (file_exists("composer.lock") == true ? "true" : "false"));
-        Utils::log("Vendor Folder: " . (file_exists("vendor/") == true ? "true" : "false"));
+        self::log("===========BEGIN DUMP===========");
+        self::log("InstagramLive-PHP Version: " . scriptVersion);
+        self::log("InstagramLive-PHP Flavor: " . scriptFlavor);
+        self::log("Operating System: " . PHP_OS);
+        self::log("PHP Version: " . PHP_VERSION);
+        self::log("PHP Runtime: " . php_sapi_name());
+        self::log("PHP Binary: " . PHP_BINARY);
+        self::log("Bypassing OS-Check: " . (bypassCheck == true ? "true" : "false"));
+        self::log("Composer Lock: " . (file_exists("composer.lock") == true ? "true" : "false"));
+        self::log("Vendor Folder: " . (file_exists("vendor/") == true ? "true" : "false"));
         if ($exception !== null) {
-            Utils::log("Exception: " . $exception);
+            self::log("Exception: " . $exception);
         }
-        Utils::log("============END DUMP============");
+        self::log("============END DUMP============");
     }
 
     /**
@@ -68,9 +78,9 @@ class Utils
     public static function existsOrError($path, $reason)
     {
         if (!file_exists($path)) {
-            Utils::log("The following file, `" . $path . "` is required and not found by the script for the following reason: " . $reason);
-            Utils::log("Please make sure you follow the setup guide correctly.");
-            Utils::dump();
+            self::log("The following file, `" . $path . "` is required and not found by the script for the following reason: " . $reason);
+            self::log("Please make sure you follow the setup guide correctly.");
+            self::dump();
             exit();
         }
     }
@@ -86,6 +96,119 @@ class Utils
         return (substr($haystack, 0, strlen($needle)) === $needle);
     }
 
+    public static function loginFlow($username, $password): ExtendedInstagram
+    {
+        $ig = new ExtendedInstagram(false, false);
+        try {
+            $loginResponse = $ig->login($username, $password);
+
+            if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
+                self::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
+                $twoFactorIdentifier = $loginResponse->getTwoFactorInfo()->getTwoFactorIdentifier();
+                print "\nType your verification code> ";
+                $handle = fopen("php://stdin", "r");
+                $verificationCode = trim(fgets($handle));
+                fclose($handle);
+                self::log("Logging in with verification token...");
+                $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
+            }
+        } catch (\Exception $e) {
+            try {
+                /** @noinspection PhpUndefinedMethodInspection */
+                if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
+                    $response = $e->getResponse();
+
+                    self::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
+                    self::log("Suspicious Login: Please only attempt this once or twice if your attempts are unsuccessful. If this keeps happening, this script is not for you :(.");
+                    print "> ";
+                    $handle = fopen("php://stdin", "r");
+                    $attemptBypass = trim(fgets($handle));
+                    fclose($handle);
+                    if ($attemptBypass == 'yes') {
+                        self::log("Preparing to verify account...");
+                        sleep(3);
+
+                        self::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
+                        print "> ";
+                        $handle = fopen("php://stdin", "r");
+                        $choice = trim(fgets($handle));
+                        fclose($handle);
+                        if ($choice === "sms") {
+                            $verification_method = 0;
+                        } elseif ($choice === "email") {
+                            $verification_method = 1;
+                        } else {
+                            self::log("Aborting!");
+                            exit();
+                        }
+
+                        /** @noinspection PhpUndefinedMethodInspection */
+                        $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
+                        $customResponse = $ig->request($checkApiPath)
+                            ->setNeedsAuth(false)
+                            ->addPost('choice', $verification_method)
+                            ->addPost('_uuid', $ig->uuid)
+                            ->addPost('guid', $ig->uuid)
+                            ->addPost('device_id', $ig->device_id)
+                            ->addPost('_uid', $ig->account_id)
+                            ->addPost('_csrftoken', $ig->client->getToken())
+                            ->getDecodedResponse();
+
+                        try {
+                            if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
+                                if ($customResponse['action'] === 'close') {
+                                    self::log("Suspicious Login: Account challenge successful, please re-run the script!");
+                                    exit();
+                                }
+                            }
+
+                            self::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
+                            print "> ";
+                            $handle = fopen("php://stdin", "r");
+                            $cCode = trim(fgets($handle));
+                            fclose($handle);
+                            $ig->changeUser($username, $password);
+                            $customResponse = $ig->request($checkApiPath)
+                                ->setNeedsAuth(false)
+                                ->addPost('security_code', $cCode)
+                                ->addPost('_uuid', $ig->uuid)
+                                ->addPost('guid', $ig->uuid)
+                                ->addPost('device_id', $ig->device_id)
+                                ->addPost('_uid', $ig->account_id)
+                                ->addPost('_csrftoken', $ig->client->getToken())
+                                ->getDecodedResponse();
+
+                            if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
+                                self::log("Suspicious Login: Account challenge successful, please re-run the script!");
+                                exit();
+                            } else {
+                                self::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
+                                exit();
+                            }
+                        } catch (Exception $ex) {
+                            self::log("Suspicious Login: Account Challenge Failed :(.");
+                            self::dump($ex->getMessage());
+                            exit();
+                        }
+                    } else {
+                        self::log("Suspicious Login: Account Challenge Failed :(.");
+                        self::dump();
+                        exit();
+                    }
+                }
+            } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
+                self::log("Error While Logging in to Instagram: " . $e->getMessage());
+                self::dump();
+                exit();
+            }
+
+            self::log("Error While Logging in to Instagram: " . $e->getMessage());
+            self::dump();
+            exit();
+        }
+        return $ig;
+    }
+
     /**
      * Logs a message in console but it actually uses new lines.
      * @param string $message message to be logged.
@@ -93,5 +216,13 @@ class Utils
     public static function log($message)
     {
         print $message . "\n";
+    }
+}
+
+class ExtendedInstagram extends Instagram
+{
+    public function changeUser($username, $password)
+    {
+        $this->_setUser($username, $password);
     }
 }
