@@ -31,6 +31,8 @@ If your system does not support OBS integration or you want to see what settings
 To view comments and likes as you are streaming, you'll need a Windows machine as this script's async support only works on Windows. When you run the script on Windows, after it logs you in, it will open a second screen where you can enter commands as the first screen will output comments and likes.
 
 Linux/Mac support is planned for a future release.
+# Previous Livestream Statistics
+In addition to letting you go live, InstagramLive-PHP also has a script to display statistics from your archived livestreams. Just run `php checkVod.php` to view a list of your currently archived livestreams and view available statistics about them.
 # Commands & Command Line Arguments
 InstagramLive-PHP has many commands to aid while streaming as well as command line arguments to change the behavior of the script. To view what they are and which ones work on what operating system: [click here for the streaming commands](https://github.com/JRoy/InstagramLive-PHP/wiki/Commands) or [click here for the command line arguments](https://github.com/JRoy/InstagramLive-PHP/wiki/Command-Line-Arguments). 
 # FAQ
