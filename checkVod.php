@@ -39,14 +39,8 @@ $username = IG_USERNAME;
 $password = IG_PASS;
 if (promptLogin) {
     Utils::log("Please enter your credentials...");
-    print "Username: ";
-    $usernameHandle = fopen("php://stdin", "r");
-    $username = trim(fgets($usernameHandle));
-    fclose($usernameHandle);
-    print "Password: ";
-    $passwordHandle = fopen("php://stdin", "r");
-    $password = trim(fgets($passwordHandle));
-    fclose($passwordHandle);
+    $username = Utils::promptInput("Username:");
+    $password = Utils::promptInput("Password:");
 }
 
 if ($username == "USERNAME" || $password == "PASSWORD") {
@@ -72,10 +66,9 @@ foreach ($storyFeed->getPostLiveItem()->getBroadcasts() as $broadcast) {
     Utils::log("[$postLiveIndex] - Published At: " . date("Y-m-d H:i:s", substr($broadcast->getPublishedTime(), 0, 10)));
     $postLiveIndex++;
 }
-print "Type the Livestream ID from the above selection...\n> ";
+Utils::log("Type the Livestream ID from the above selection...");
 $handle = fopen("php://stdin", "r");
-$postLiveIndex = trim(fgets($handle));
-fclose($handle);
+$postLiveIndex = Utils::promptInput();
 @$selectedBroadcast = $storyFeed->getPostLiveItem()->getBroadcasts()[$postLiveIndex];
 if ($selectedBroadcast === null) {
     Utils::log("Invalid Livestream ID! Exiting...");
@@ -84,11 +77,7 @@ if ($selectedBroadcast === null) {
 Utils::log("\nSelected Broadcast ID: " . $selectedBroadcast->getId());
 
 Utils::log("\nWhat would you selected stream? Type one of the following commands:\ninfo - Displays info about the broadcast.\ndelete - Removes the broadcast from public view.");
-$handle = fopen("php://stdin", "r");
-print "> ";
-$cmd = trim(fgets($handle));
-fclose($handle);
-
+$cmd = Utils::promptInput();
 switch ($cmd) {
     case 'info':
         Utils::log("\nID: " . $selectedBroadcast->getId());

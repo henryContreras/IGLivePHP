@@ -102,14 +102,8 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
     $password = IG_PASS;
     if (promptLogin) {
         Utils::log("Please enter your credentials...");
-        print "Username: ";
-        $usernameHandle = fopen("php://stdin", "r");
-        $username = trim(fgets($usernameHandle));
-        fclose($usernameHandle);
-        print "Password: ";
-        $passwordHandle = fopen("php://stdin", "r");
-        $password = trim(fgets($passwordHandle));
-        fclose($passwordHandle);
+        $username = Utils::promptInput("Username:");
+        $password = Utils::promptInput("Password:");
     }
 
     if ($username == "USERNAME" || $password == "PASSWORD") {
@@ -152,11 +146,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         } else {
             if (!obsAutomationAccept) {
                 Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.");
-                print "> ";
-                $eoiH = fopen("php://stdin", "r");
-                $eoi = trim(fgets($eoiH));
-                fclose($eoiH);
-                if ($eoi !== "yes") {
+                if (Utils::promptInput() !== "yes") {
                     $obsAutomation = false;
                 }
             }
@@ -197,18 +187,14 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                     Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
                 } else {
                     Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                    $oPauseH = fopen("php://stdin", "r");
-                    fgets($oPauseH);
-                    fclose($oPauseH);
+                    Utils::promptInput("");
                 }
             }
         }
 
         if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
             Utils::log("Please" . ($helper->slobsPresent ? " launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
-            $pauseH = fopen("php://stdin", "r");
-            fgets($pauseH);
-            fclose($pauseH);
+            Utils::promptInput("");
         }
 
         $ig->live->start($broadcastId);
@@ -503,10 +489,8 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 
             $archived = "yes";
             if (!autoArchive) {
-                print "Would you like to archive this stream?\n> ";
-                $handle = fopen("php://stdin", "r");
-                $archived = trim(fgets($handle));
-                fclose($handle);
+                Utils::log("Would you like to archive this stream?");
+                $archived = Utils::promptInput();
             }
             if ($archived == 'yes') {
                 Utils::log("Adding to Archive...");
@@ -534,10 +518,8 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             Utils::log("Stream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
             if (!autoArchive) {
-                print "Would you like to archive this stream?\n> ";
-                $handle = fopen("php://stdin", "r");
-                $archived = trim(fgets($handle));
-                fclose($handle);
+                Utils::log("Would you like to archive this stream?");
+                $archived = Utils::promptInput();
             }
             if ($archived == 'yes') {
                 Utils::log("Adding to Archive...");
@@ -547,10 +529,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             $restart = "yes";
             if (!infiniteStream) {
                 Utils::log("Would you like to go live again?");
-                print "> ";
-                $handle = fopen("php://stdin", "r");
-                $restart = trim(fgets($handle));
-                fclose($handle);
+                $restart = Utils::promptInput();
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
@@ -578,9 +557,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsAuto, ObsHelper $helper)
 {
     print "\n> ";
-    $handle = fopen("php://stdin", "r");
-    $line = trim(fgets($handle));
-    fclose($handle);
+    $line = Utils::promptInput();
     if ($line == 'ecomments') {
         $live->enableComments($broadcastId);
         Utils::log("Enabled Comments!");
@@ -588,7 +565,6 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         $live->disableComments($broadcastId);
         Utils::log("Disabled Comments!");
     } elseif ($line == 'stop' || $line == 'end') {
-        fclose($handle);
         if ($obsAuto) {
             Utils::log("OBS Integration: Killing OBS...");
             $helper->killOBS();
@@ -604,10 +580,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         $archived = "yes";
         if (!autoArchive) {
             Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
-            print "> ";
-            $handle = fopen("php://stdin", "r");
-            $archived = trim(fgets($handle));
-            fclose($handle);
+            $archived = Utils::promptInput();
         }
         if ($archived == 'yes') {
             Utils::log("Adding to Archive!");
@@ -645,10 +618,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         }
     } elseif ($line == 'wave') {
         Utils::log("Please enter the user id you would like to wave at.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $viewerId = trim(fgets($handle));
-        fclose($handle);
+        $viewerId = Utils::promptInput();
         try {
             $live->wave($broadcastId, $viewerId);
             Utils::log("Waved at a user!");
@@ -658,10 +628,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         }
     } elseif ($line == 'comment') {
         Utils::log("Please enter the text you wish to comment.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $text = trim(fgets($handle));
-        fclose($handle);
+        $text = Utils::promptInput();
         if ($text !== "") {
             $live->comment($broadcastId, $text);
             Utils::log("Commented on stream!");
@@ -673,7 +640,6 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
     }
-    @fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
 

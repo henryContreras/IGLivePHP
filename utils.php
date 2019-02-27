@@ -94,6 +94,26 @@ class Utils
         return (substr($haystack, 0, strlen($needle)) === $needle);
     }
 
+    /**
+     * Prompts for user input. (Note: Holds the current thread!)
+     * @param string $prompt The prompt for the input.
+     * @return string The collected input.
+     */
+    public static function promptInput($prompt = '>'): string
+    {
+        print "$prompt ";
+        $handle = fopen("php://stdin", "r");
+        $input = trim(fgets($handle));
+        fclose($handle);
+        return $input;
+    }
+
+    /**
+     * Runs our login flow to authenticate the user as well as resolve all two-factor/challenge items.
+     * @param string $username Username of the target account.
+     * @param string $password Password of the target account.
+     * @return ExtendedInstagram Authenticated Session.
+     */
     public static function loginFlow($username, $password): ExtendedInstagram
     {
         $ig = new ExtendedInstagram(false, false);
@@ -103,10 +123,7 @@ class Utils
             if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
                 self::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
                 $twoFactorIdentifier = $loginResponse->getTwoFactorInfo()->getTwoFactorIdentifier();
-                print "\nType your verification code> ";
-                $handle = fopen("php://stdin", "r");
-                $verificationCode = trim(fgets($handle));
-                fclose($handle);
+                $verificationCode = self::promptInput("Type your verification code>");
                 self::log("Logging in with verification token...");
                 $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
             }
@@ -118,10 +135,7 @@ class Utils
 
                     self::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
                     self::log("Suspicious Login: Please only attempt this once or twice if your attempts are unsuccessful. If this keeps happening, this script is not for you :(.");
-                    print "> ";
-                    $handle = fopen("php://stdin", "r");
-                    $attemptBypass = trim(fgets($handle));
-                    fclose($handle);
+                    $attemptBypass = self::promptInput();
                     if ($attemptBypass !== 'yes') {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
                         self::dump();
@@ -131,10 +145,7 @@ class Utils
                     sleep(3);
 
                     self::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
-                    print "> ";
-                    $handle = fopen("php://stdin", "r");
-                    $choice = trim(fgets($handle));
-                    fclose($handle);
+                    $choice = self::promptInput();
                     if ($choice === "sms") {
                         $verification_method = 0;
                     } elseif ($choice === "email") {
@@ -165,10 +176,7 @@ class Utils
                         }
 
                         self::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
-                        print "> ";
-                        $handle = fopen("php://stdin", "r");
-                        $cCode = trim(fgets($handle));
-                        fclose($handle);
+                        $cCode = self::promptInput();
                         $ig->changeUser($username, $password);
                         $customResponse = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)

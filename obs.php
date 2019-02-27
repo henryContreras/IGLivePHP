@@ -75,9 +75,8 @@ class ObsHelper
                 Utils::log("[$profileIndex] - " . str_replace(getenv("appdata") . "\obs-studio\basic\profiles\\", '', $curProfile));
                 $profileIndex++;
             }
-            print "OBS Integration: Type your Profile ID from the above selection...\n>";
-            $handle = fopen("php://stdin", "r");
-            $profileIndex = trim(fgets($handle));
+            Utils::log("OBS Integration: Type your Profile ID from the above selection...");
+            $profileIndex = Utils::promptInput();
             @$profile = $profiles[$profileIndex];
             if ($profile === null) {
                 Utils::log("OBS Integration: Invalid Profile Selection!");

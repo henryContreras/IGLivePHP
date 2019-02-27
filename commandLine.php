@@ -10,9 +10,7 @@ newCommand();
 
 function newCommand()
 {
-    print "\n> ";
-    $handle = fopen("php://stdin", "r");
-    $line = trim(fgets($handle));
+    $line = Utils::promptInput("\n>");
     if ($line == 'ecomments') {
         sendRequest("ecomments", null);
         Utils::log("Enabled Comments!");
@@ -20,13 +18,10 @@ function newCommand()
         sendRequest("dcomments", null);
         Utils::log("Disabled Comments!");
     } elseif ($line == 'stop' || $line == 'end') {
-        fclose($handle);
         $archived = "yes";
         if (!autoArchive) {
             Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
-            print "> ";
-            $handle = fopen("php://stdin", "r");
-            $archived = trim(fgets($handle));
+            $archived = Utils::promptInput();
         }
         if ($archived == 'yes') {
             sendRequest("end", ["yes"]);
@@ -37,11 +32,8 @@ function newCommand()
         sleep(2);
         exit();
     } elseif ($line == 'pin') {
-        fclose($handle);
         Utils::log("Please enter the comment id you would like to pin.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $commentId = trim(fgets($handle));
+        $commentId = Utils::promptInput();
         //TODO add comment id length check
         Utils::log("Assuming that was a valid comment id, the comment should be pinned!");
         sendRequest("pin", [$commentId]);
@@ -52,11 +44,8 @@ function newCommand()
         Utils::log("Please check the other window to see the pinned comment!");
         sendRequest("pinned", null);
     } elseif ($line == 'comment') {
-        fclose($handle);
         Utils::log("Please enter what you would like to comment.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $text = trim(fgets($handle));
+        $text = Utils::promptInput();
         Utils::log("Commented! Check the other window to ensure the comment was made!");
         sendRequest("comment", [$text]);
     } elseif ($line == 'url') {
@@ -75,22 +64,16 @@ function newCommand()
         Utils::log("Please check the other window for you questions list!");
         sendRequest("questions", null);
     } elseif ($line == 'showquestion') {
-        fclose($handle);
         Utils::log("Please enter the question id you would like to display.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $questionId = trim(fgets($handle));
+        $questionId = Utils::promptInput();
         Utils::log("Please check the other window to make sure the question was displayed!");
         sendRequest('showquestion', [$questionId]);
     } elseif ($line == 'hidequestion') {
         Utils::log("Please check the other window to make sure the question was removed!");
         sendRequest('hidequestion', null);
     } elseif ($line == 'wave') {
-        fclose($handle);
         Utils::log("Please enter the user id you would like to wave at.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $viewerId = trim(fgets($handle));
+        $viewerId = Utils::promptInput();
         Utils::log("Please check the other window to make sure the person was waved at!");
         sendRequest('wave', [$viewerId]);
     } elseif ($line == 'help') {
@@ -114,7 +97,6 @@ function newCommand()
     } else {
         Utils::log("Invalid Command. Type \"help\" for help!");
     }
-    fclose($handle);
     newCommand();
 }
 
