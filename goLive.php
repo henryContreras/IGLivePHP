@@ -232,7 +232,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         }
 
         Utils::log("Unable to start command lines, attempting clean up!");
-        parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
+        parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
         $ig->live->end($broadcastId);
         Utils::dump();
         exit();
@@ -262,27 +262,26 @@ function addComment(Comment $comment, bool $system = false)
 }
 
 /**
- * @param \InstagramAPI\Response\Model\User[] $users
+ * @param \InstagramAPI\Response\FinalViewerListResponse $finalResponse
  */
-function parseFinalViewers($users)
+function parseFinalViewers($finalResponse)
 {
     $finalViewers = '';
-    $finalViewersCount = 0;
-    foreach ($users as $user) {
+    foreach ($finalResponse->getUsers() as $user) {
         $finalViewers = $finalViewers . '@' . $user->getUsername() . ', ';
-        $finalViewersCount++;
     }
     $finalViewers = rtrim($finalViewers, " ,");
 
-    if ($finalViewers !== '') {
-        Utils::log("$finalViewersCount Final Viewer(s): $finalViewers");
+    if ($finalResponse->getTotalUniqueViewerCount() > 0) {
+        Utils::log($finalResponse->getTotalUniqueViewerCount() . " Final Viewer(s).");
+        Utils::log("Top Viewers: $finalViewers");
     } else {
         Utils::log("Your stream had no viewers :(");
     }
 
 
     if (logCommentOutput) {
-        Utils::logOutput("$finalViewersCount Final Viewer(s): $finalViewers");
+        Utils::logOutput($finalResponse->getTotalUniqueViewerCount() . " Final Viewer(s): $finalViewers");
     }
 }
 
@@ -339,7 +338,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     $archived = $values[0];
                     Utils::log("Wrapping up and exiting...");
                     //Needs this to retain, I guess?
-                    parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
+                    parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
                     $ig->live->end($broadcastId);
                     if ($archived == 'yes') {
                         $ig->live->addToPostLive($broadcastId);
@@ -498,7 +497,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("OBS Integration: Restoring old service.json...");
                 $helper->resetServiceState();
             }
-            parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to user requested stream limit of $streamTotalSec seconds!");
 
@@ -530,7 +529,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("OBS Integration: Restoring old service.json...");
                 $helper->resetServiceState();
             }
-            parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
@@ -599,7 +598,7 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
             $helper->resetServiceState();
         }
         //Needs this to retain, I guess?
-        parseFinalViewers($live->getFinalViewerList($broadcastId)->getUsers());
+        parseFinalViewers($live->getFinalViewerList($broadcastId));
         $live->end($broadcastId);
         Utils::log("Stream Ended!");
         $archived = "yes";
