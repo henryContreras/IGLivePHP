@@ -562,7 +562,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             exit();
         }
 
-        sleep(1);
+        sleep(2);
     } while (!$exit);
 }
 
