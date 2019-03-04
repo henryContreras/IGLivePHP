@@ -32,7 +32,7 @@ $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the a
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
-$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
+$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
 $streamTotalSec = 0;
