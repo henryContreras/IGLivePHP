@@ -21,6 +21,7 @@ $helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mod
 $helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
 $helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
 $helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
+$helpData = registerArgument($helpData, $argv, "autoDiscard", "Automatically discards a live stream after it ends.", "d", "auto-discard");
 $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
 $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
@@ -278,7 +279,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         Utils::log("Command Line: To start the new command line, please run the commandLine.php script.");
     } else {
         if ($console) {
-            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : ""), "r"));
+            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : ""), "r"));
         }
     }
     @cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
@@ -488,11 +489,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             Utils::log("Stream has ended due to user requested stream limit of $streamTotalSec seconds!");
 
             $archived = "yes";
-            if (!autoArchive) {
+            if (!autoArchive && !autoDiscard) {
                 Utils::log("Would you like to archive this stream?");
                 $archived = Utils::promptInput();
             }
-            if ($archived == 'yes') {
+            if (autoArchive || $archived == 'yes' && !autoDiscard) {
                 Utils::log("Adding to Archive...");
                 $ig->live->addToPostLive($broadcastId);
                 Utils::log("Livestream added to archive!");
@@ -517,11 +518,11 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
-            if (!autoArchive) {
+            if (!autoArchive && !autoDiscard) {
                 Utils::log("Would you like to archive this stream?");
                 $archived = Utils::promptInput();
             }
-            if ($archived == 'yes') {
+            if (autoArchive || $archived == 'yes' && !autoDiscard) {
                 Utils::log("Adding to Archive...");
                 $ig->live->addToPostLive($broadcastId);
                 Utils::log("Livestream added to archive!");
@@ -578,12 +579,12 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
         $live->end($broadcastId);
         Utils::log("Stream Ended!");
         $archived = "yes";
-        if (!autoArchive) {
-            Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
+        if (!autoArchive && !autoDiscard) {
+            Utils::log("Would you like to archive this stream?");
             $archived = Utils::promptInput();
         }
-        if ($archived == 'yes') {
-            Utils::log("Adding to Archive!");
+        if (autoArchive || $archived == 'yes' && !autoDiscard) {
+            Utils::log("Adding to Archive...");
             $live->addToPostLive($broadcastId);
             Utils::log("Livestream added to archive!");
         }
