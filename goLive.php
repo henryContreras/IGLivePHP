@@ -51,7 +51,7 @@ foreach ($argv as $curArg) {
 require_once 'utils.php';
 
 define("scriptVersion", "1.5");
-define("scriptVersionCode", "33");
+define("scriptVersionCode", "34");
 define("scriptFlavor", "beta");
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
