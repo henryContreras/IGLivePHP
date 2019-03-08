@@ -17,6 +17,18 @@ if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
 $helpData = [];
 $helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
+$helpData = registerArgument($helpData, $argv, "autoSelect", "Automatically selects the first vod that the script finds.", "a", "auto-select");
+$helpData = registerArgument($helpData, $argv, "thisIsPlaceHolder", "Sets the broadcast id to grab data from. (Example: --broadcast-id=17854587811139572).", "-broadcast-id");
+$helpData = registerArgument($helpData, $argv, "autoDelete", "Automatically deletes the selected live stream.", "d", "delete");
+$helpData = registerArgument($helpData, $argv, "autoInfo", "Automatically prints info about the selected live stream.", "i", "info");
+
+$preSelectedBroadcast = "0";
+
+foreach ($argv as $curArg) {
+    if (strpos($curArg, '--broadcast-id=') !== false) {
+        $preSelectedBroadcast = (string)str_replace('--broadcast-id=', '', $curArg);
+    }
+}
 
 require_once 'utils.php';
 
@@ -60,15 +72,33 @@ if ($storyFeed->getPostLiveItem() === null || $storyFeed->getPostLiveItem()->get
     exit();
 }
 
-Utils::log("Please select the livestream you want information about:");
 $postLiveIndex = 0;
-foreach ($storyFeed->getPostLiveItem()->getBroadcasts() as $broadcast) {
-    Utils::log("[$postLiveIndex] - Published At: " . date("Y-m-d H:i:s", substr($broadcast->getPublishedTime(), 0, 10)));
-    $postLiveIndex++;
+if (!autoSelect && $preSelectedBroadcast === '0') {
+    Utils::log("Please select the livestream you want information about:");
 }
-Utils::log("Type the Livestream ID from the above selection...");
-$handle = fopen("php://stdin", "r");
-$postLiveIndex = Utils::promptInput();
+$postLiveCache = [];
+foreach ($storyFeed->getPostLiveItem()->getBroadcasts() as $broadcast) {
+    if (!autoSelect) {
+        if ($preSelectedBroadcast === '0') {
+            Utils::log("[$postLiveIndex] - Published At: " . date("Y-m-d H:i:s", substr($broadcast->getPublishedTime(), 0, 10)));
+        }
+        $postLiveCache[$broadcast->getId()] = $postLiveIndex;
+        $postLiveIndex++;
+    }
+}
+if (!autoSelect && $preSelectedBroadcast === '0') {
+    Utils::log("Type the Livestream ID from the above selection...");
+    $postLiveIndex = Utils::promptInput();
+}
+
+if ($preSelectedBroadcast !== '0') {
+    if (!isset($postLiveCache[$preSelectedBroadcast])) {
+        Utils::log("Invalid Livestream ID! Exiting...");
+        exit();
+    }
+    $postLiveIndex = $postLiveCache[$preSelectedBroadcast];
+}
+
 @$selectedBroadcast = $storyFeed->getPostLiveItem()->getBroadcasts()[$postLiveIndex];
 if ($selectedBroadcast === null) {
     Utils::log("Invalid Livestream ID! Exiting...");
@@ -76,8 +106,15 @@ if ($selectedBroadcast === null) {
 }
 Utils::log("\nSelected Broadcast ID: " . $selectedBroadcast->getId());
 
-Utils::log("\nWhat would you selected stream? Type one of the following commands:\ninfo - Displays info about the broadcast.\ndelete - Removes the broadcast from public view.");
-$cmd = Utils::promptInput();
+if (!autoDelete && !autoInfo) {
+    Utils::log("\nWhat would you selected stream? Type one of the following commands:\ninfo - Displays info about the broadcast.\ndelete - Removes the broadcast from public view.");
+    $cmd = Utils::promptInput();
+} else if (autoDelete) {
+    $cmd = 'delete';
+} else if (autoInfo) {
+    $cmd = 'info';
+}
+
 switch ($cmd) {
     case 'info':
         Utils::log("\nID: " . $selectedBroadcast->getId());
