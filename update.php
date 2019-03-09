@@ -1,12 +1,17 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
-if (exec(PHP_BINARY . " goLive.php --dumpFlavor") == 'custom') {
+logTxt("Loading Updater...");
+if (file_exists('goLive.php')) {
+    $cachedFlavor = exec(PHP_BINARY . " goLive.php --dumpFlavor");
+}
+
+if (@$cachedFlavor == 'custom') {
     logTxt("Custom build flavor located! Exiting updater...");
     exit();
 }
 
 $beta = false;
-if (exec(PHP_BINARY . " goLive.php --dumpFlavor") == 'beta') {
+if (@$cachedFlavor == 'beta') {
     $beta = true;
 }
 if (in_array('-b', $argv) || in_array('--beta', $argv)) {
