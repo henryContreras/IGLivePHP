@@ -62,10 +62,11 @@ class Utils
     /**
      * Logs message to a output file.
      * @param string $message message to be logged to file.
+     * @param string $file file to output to.
      */
-    public static function logOutput($message)
+    public static function logOutput($message, $file = 'output.txt')
     {
-        file_put_contents('output.txt', $message . PHP_EOL, FILE_APPEND | LOCK_EX);
+        file_put_contents($file, $message . PHP_EOL, FILE_APPEND | LOCK_EX);
     }
 
     /**
@@ -217,10 +218,14 @@ class Utils
     /**
      * Logs a message in console but it actually uses new lines.
      * @param string $message message to be logged.
+     * @param string $outputFile
      */
-    public static function log($message)
+    public static function log($message, $outputFile = '')
     {
         print $message . "\n";
+        if ($outputFile !== '') {
+            self::logOutput($message, $outputFile);
+        }
     }
 }
 

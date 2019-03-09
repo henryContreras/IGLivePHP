@@ -19,14 +19,18 @@ $helpData = registerArgument($helpData, $argv, "help", "Displays this message.",
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
 $helpData = registerArgument($helpData, $argv, "autoSelect", "Automatically selects the first vod that the script finds.", "a", "auto-select");
 $helpData = registerArgument($helpData, $argv, "thisIsPlaceHolder", "Sets the broadcast id to grab data from. (Example: --broadcast-id=17854587811139572).", "-broadcast-id");
+$helpData = registerArgument($helpData, $argv, "placeHolder", "Sets the file to output data to. (Example: --output=info.txt).", "-output");
 $helpData = registerArgument($helpData, $argv, "autoDelete", "Automatically deletes the selected live stream.", "d", "delete");
 $helpData = registerArgument($helpData, $argv, "autoInfo", "Automatically prints info about the selected live stream.", "i", "info");
 
 $preSelectedBroadcast = "0";
+$outputFile = '';
 
 foreach ($argv as $curArg) {
     if (strpos($curArg, '--broadcast-id=') !== false) {
         $preSelectedBroadcast = (string)str_replace('--broadcast-id=', '', $curArg);
+    } elseif (strpos($curArg, '--output=') !== false) {
+        $outputFile = (string)str_replace('--output=', '', $curArg);
     }
 }
 
@@ -93,7 +97,7 @@ if (!autoSelect && $preSelectedBroadcast === '0') {
 
 if ($preSelectedBroadcast !== '0') {
     if (!isset($postLiveCache[$preSelectedBroadcast])) {
-        Utils::log("Invalid Livestream ID! Exiting...");
+        Utils::log("Invalid Livestream ID! Exiting...", $outputFile);
         exit();
     }
     $postLiveIndex = $postLiveCache[$preSelectedBroadcast];
@@ -101,10 +105,10 @@ if ($preSelectedBroadcast !== '0') {
 
 @$selectedBroadcast = $storyFeed->getPostLiveItem()->getBroadcasts()[$postLiveIndex];
 if ($selectedBroadcast === null) {
-    Utils::log("Invalid Livestream ID! Exiting...");
+    Utils::log("Invalid Livestream ID! Exiting...", $outputFile);
     exit();
 }
-Utils::log("\nSelected Broadcast ID: " . $selectedBroadcast->getId());
+Utils::log("\nSelected Broadcast ID: " . $selectedBroadcast->getId(), $outputFile);
 
 if (!autoDelete && !autoInfo) {
     Utils::log("\nWhat would you selected stream? Type one of the following commands:\ninfo - Displays info about the broadcast.\ndelete - Removes the broadcast from public view.");
@@ -117,12 +121,12 @@ if (!autoDelete && !autoInfo) {
 
 switch ($cmd) {
     case 'info':
-        Utils::log("\nID: " . $selectedBroadcast->getId());
-        Utils::log("Published Date: " . date("Y-m-d H:i:s", substr($selectedBroadcast->getPublishedTime(), 0, 10)));
-        Utils::log("Expiry Date: " . date("Y-m-d H:i:s", substr($selectedBroadcast->getExpireAt(), 0, 10)));
-        Utils::log("Unique Viewers: " . $selectedBroadcast->getTotalUniqueViewerCount());
-        Utils::log("Cover Frame: " . $selectedBroadcast->getCoverFrameUrl());
-        Utils::log("Playback URL: " . $selectedBroadcast->getRtmpPlaybackUrl());
+        Utils::log("\nID: " . $selectedBroadcast->getId(), $outputFile);
+        Utils::log("Published Date: " . date("Y-m-d H:i:s", substr($selectedBroadcast->getPublishedTime(), 0, 10)), $outputFile);
+        Utils::log("Expiry Date: " . date("Y-m-d H:i:s", substr($selectedBroadcast->getExpireAt(), 0, 10)), $outputFile);
+        Utils::log("Unique Viewers: " . $selectedBroadcast->getTotalUniqueViewerCount(), $outputFile);
+        Utils::log("Cover Frame: " . $selectedBroadcast->getCoverFrameUrl(), $outputFile);
+        Utils::log("Playback URL: " . $selectedBroadcast->getRtmpPlaybackUrl(), $outputFile);
         break;
     case 'delete':
         Utils::log("\nRemoving Livestream from your Story...");
