@@ -53,6 +53,17 @@ require_once 'utils.php';
 define("scriptVersion", "1.5");
 define("scriptVersionCode", "34");
 define("scriptFlavor", "beta");
+
+if (dumpFlavor) {
+    Utils::log(scriptFlavor);
+    exit();
+}
+
+if (dump) {
+    Utils::dump();
+    exit();
+}
+
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
