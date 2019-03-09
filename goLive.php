@@ -59,13 +59,9 @@ if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
     Utils::log("\nUpdate: A new update is available, run the `update.php` script to fetch it!\n");
 }
 
-if (dumpFlavor) {
-    Utils::log(scriptFlavor);
-    exit();
-}
-
-if (dump) {
-    Utils::dump();
+if (!Utils::isApiDevMaster()) {
+    Utils::log("You're using an outdated Instagram-API Version! Forcing an update...");
+    exec(PHP_BINARY . " update.php");
     exit();
 }
 

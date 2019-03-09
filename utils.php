@@ -9,12 +9,27 @@ use InstagramAPI\Instagram;
 
 class Utils
 {
+    /**
+     * Checks the current version code against the server's version code.
+     * @param string $current The current version code.
+     * @param string $flavor The current version flavor.
+     * @return bool Returns true if update is available.
+     */
     public static function checkForUpdate(string $current, string $flavor): bool
     {
         if ($flavor == "custom") {
             return false;
         }
         return (int)json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/$flavor.json"), true)['versionCode'] > (int)$current;
+    }
+
+    /**
+     * Checks if the script is using dev-master
+     * @return bool Returns true if composer is using dev-master
+     */
+    public static function isApiDevMaster(): bool
+    {
+        return self::startsWith(@json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php'], 'dev-master');
     }
 
     /**
@@ -37,6 +52,7 @@ class Utils
         self::log("===========BEGIN DUMP===========");
         self::log("InstagramLive-PHP Version: " . scriptVersion);
         self::log("InstagramLive-PHP Flavor: " . scriptFlavor);
+        self::log("Instagram-API Version: " . @json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php']);
         self::log("Operating System: " . PHP_OS);
         self::log("PHP Version: " . PHP_VERSION);
         self::log("PHP Runtime: " . php_sapi_name());
