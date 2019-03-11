@@ -5,7 +5,7 @@ Built with [mgp25's amazing Instagram Private API Wrapper for PHP](https://githu
 # Note
 Please read this **entire** document as it has *very* important information about the script. If you create an issue that can be solved by reading this document, it will be ignored.
 
-# Setup
+# Live Setup
 It is suggested you watch [this video](https://www.youtube.com/watch?v=J6lp8g3zQeE) for a step-by-step process on how to install this script.
 
 1. Install PHP, of course...
@@ -17,39 +17,40 @@ It is suggested you watch [this video](https://www.youtube.com/watch?v=J6lp8g3zQ
 7. Run the `goLive.php` script. (`php goLive.php`)
 #### Video Tutorial
 If you'd like a video version of this tutorial, see [this video](https://www.youtube.com/watch?v=J6lp8g3zQeE).
-# OBS-Setup
-If your system does not support OBS integration or you want to see what settings to use for another streaming program, look here.
-1. Set your OBS canvas size to 720x1280. This can be done by going to Settings->Video and editing Base Canvas Resolution to "720x1280".
-2. Go to the "Stream" section of your OBS Settings 
-3. Set "Stream Type" to "Custom Streaming Server"
-4. Set the "URL" field to the stream url you got from the script
-5. Set the "Stream key" field to the stream key you got from the script
-6. Make Sure "Use Authentication" is **unchecked** and press "OK"
-7. Start Streaming in OBS
-8. To stop streaming, run the "stop" command in your terminal and then press "Stop Streaming" in OBS
-# Comment & Like Viewing
-To view comments and likes as you are streaming, you'll need a Windows machine as this script's async support only works on Windows. When you run the script on Windows, after it logs you in, it will open a second screen where you can enter commands as the first screen will output comments and likes.
+# Features
+* Robust Installer/Updater
+  * To install read the [Live Setup](#live-setup) section
+  * To check for/apply an update just do `php update.php`
+    * If you want to try beta feature just do: `php update.php --beta`
+* Supports Accounts with 2FA
+* View Live Chat/Likes (Windows/Mac Only)
+* Execute Commands to Comment, Wave, Pin Comments, Show Questions, and more...
+* Launch & Start OBS Automatically (Windows Only)
+* Infinite Stream: Stream forever with no user input! (Windows/Mac Only)
+  * Accomplished by doing: `php goLive.php -i -d`
+  * Windows Users with OBS can do `php goLive.php -i -d --obs` for absolutely no input from the user required
+* Archived Stream Statistics
+  * Accomplished by doing: `php checkVod.php` 24 hours within archiving a stream
+# Commands
+To view what commands you can run while streaming: [Click Here](https://github.com/JRoy/InstagramLive-PHP/wiki/Commands)
 
-Linux/Mac support is planned for a future release.
-# Previous Livestream Statistics
-In addition to letting you go live, InstagramLive-PHP also has a script to display statistics from your archived livestreams. Just run `php checkVod.php` to view a list of your currently archived livestreams and view available statistics about them.
-# Commands & Command Line Arguments
-InstagramLive-PHP has many commands to aid while streaming as well as command line arguments to change the behavior of the script. To view what they are and which ones work on what operating system: [click here for the streaming commands](https://github.com/JRoy/InstagramLive-PHP/wiki/Commands) or [click here for the command line arguments](https://github.com/JRoy/InstagramLive-PHP/wiki/Command-Line-Arguments). 
+To view what flags you can run the `goLive.php` script with: [Click Here](https://github.com/JRoy/InstagramLive-PHP/wiki/Command-Line-Arguments) 
 # FAQ
 #### OBS gives a "Failed to connect" error
-This is mostly due to an invalid stream key: The stream key changes **every** time you start a new stream so it must be replaced in OBS every time.
+This could be due to the following reasons:
+* An invalid stream key. The stream key changes for every stream, make sure you update it.
+* Your system does not support un-secure rmtp. You can fix this by running the script with `--use-rmtps` (`php goLive.php --use-rmtps`).
 #### I've stopped streaming but Instagram still shows me as live
-This is due to you not running the "stop" command inside the script. You cannot just close the command window to make Instagram stop streaming, you must run the stop command in the script. If you *do* close the command window however, start it again and just run the stop command, this should stop Instagram from listing to live content.
-#### I get an error inside of Instagram when archiving my story
-This is usually due to archiving a stream that had no content (video). Just delete the archive and be go on with your day.
-#### I archived my live stream but I don't see it inside of Instagram
-This is can be caused by 1 of 2 reasons:
-* You did not stream anything. Please make sure you actually send a video to the stream url or the archive may fail to load.
-* You did not change your stream content/canvas size. If you are using OBS, you can address this by following step one in [OBS Setup Section](https://github.com/JRoy/InstagramLive-PHP#obs-setup).
+Make sure you actually running the `stop` command when you're streaming and not close it.
+#### I don't see or get an error in Instagram when archiving my story
+This could be due to the following reasons:
+* You didn't stream anything from OBS/your encoder. In this case, you should delete the archive.
+* You streamed a disallowed aspect ratio. Make sure you're using a vertical 16:9 aspect ratio (9:16) like 720x1280. In this case, you should delete the archive.
+* Your stream is still processing. This is normal for longer streams.
 #### I get "CURL Error 60: SSL certificate problem" when trying to log into Instagram
 This is due to CURL not having a valid CA. You can find a solution here: [https://stackoverflow.com/a/34883260](https://stackoverflow.com/a/34883260).
 #### I get "CURL Error 28: Operation timed out after x milliseconds with 0 bytes received."
-This means Instagram is refusing to connect to your proxy/computer. This could be for a wide verity of different reasons. I cannot help you when this if this happens, it's out of my control and there is nothing you can do to fix this other than changing your IP Address or actual computer you are using. Additionally, a proxy or VPN could create this issue.
+In this case, your IP is blocked by Instagram. There is nothing I can do in this situation, if you're using a VPN/Proxy (which are not supported), don't. 
 ### Question not listed here?
 If your question is not listed here, [join our discord](https://discord.gg/EpkKFt3) so I can help support you faster. [https://discord.gg/EpkKFt3](https://discord.gg/EpkKFt3)
 # Donate
