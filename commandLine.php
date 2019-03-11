@@ -15,13 +15,17 @@ function newCommand()
     switch ($line) {
 
         case 'ecomments':
-            {
-                sendRequest("ecomments", null);
-                break;
-            }
         case 'dcomments':
+        case 'unpin':
+        case 'pinned':
+        case 'url':
+        case 'key':
+        case 'info':
+        case 'viewers':
+        case 'questions':
+        case 'hidequestion':
             {
-                sendRequest("dcomments", null);
+                sendRequest($line, null);
                 break;
             }
         case'stop':
@@ -48,60 +52,6 @@ function newCommand()
                 $commentId = Utils::promptInput();
                 //TODO add comment id length check
                 sendRequest("pin", [$commentId]);
-                break;
-            }
-        case 'unpin':
-            {
-                sendRequest("unpin", null);
-                break;
-            }
-        case 'pinned':
-            {
-                sendRequest("pinned", null);
-                break;
-            }
-        case 'comment':
-            {
-                Utils::log("Please enter what you would like to comment.");
-                $text = Utils::promptInput();
-                sendRequest("comment", [$text]);
-                break;
-            }
-        case 'url':
-            {
-                sendRequest("url", null);
-                break;
-            }
-        case 'key':
-            {
-                sendRequest("key", null);
-                break;
-            }
-        case 'info':
-            {
-                sendRequest("info", null);
-                break;
-            }
-        case 'viewers':
-            {
-                sendRequest("viewers", null);
-                break;
-            }
-        case 'questions':
-            {
-                sendRequest("questions", null);
-                break;
-            }
-        case 'showquestion':
-            {
-                Utils::log("Please enter the question id you would like to display.");
-                $questionId = Utils::promptInput();
-                sendRequest('showquestion', [$questionId]);
-                break;
-            }
-        case 'hidequestion':
-            {
-                sendRequest('hidequestion', null);
                 break;
             }
         case 'wave':
