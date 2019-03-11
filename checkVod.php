@@ -34,7 +34,7 @@ foreach ($argv as $curArg) {
     }
 }
 
-require_once 'utils.php';
+require_once __DIR__ . '/utils.php';
 
 if (help) {
     Utils::log("Command Line Arguments:");
@@ -49,7 +49,7 @@ Utils::existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
 Utils::existsOrError('config.php', "Username & Password Storage");
 
 require_once __DIR__ . '/vendor/autoload.php'; //Composer
-require_once 'config.php';
+require_once __DIR__ . '/config.php';
 
 $username = IG_USERNAME;
 $password = IG_PASS;

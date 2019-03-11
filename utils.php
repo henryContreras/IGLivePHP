@@ -129,11 +129,13 @@ class Utils
      * Runs our login flow to authenticate the user as well as resolve all two-factor/challenge items.
      * @param string $username Username of the target account.
      * @param string $password Password of the target account.
+     * @param bool $debug Debug
+     * @param bool $truncatedDebug Truncated Debug
      * @return ExtendedInstagram Authenticated Session.
      */
-    public static function loginFlow($username, $password): ExtendedInstagram
+    public static function loginFlow($username, $password, $debug = false, $truncatedDebug = false): ExtendedInstagram
     {
-        $ig = new ExtendedInstagram(false, false);
+        $ig = new ExtendedInstagram($debug, $truncatedDebug);
         try {
             $loginResponse = $ig->login($username, $password);
 

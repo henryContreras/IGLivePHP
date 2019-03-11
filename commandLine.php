@@ -1,5 +1,5 @@
 <?php
-include_once 'utils.php';
+include_once __DIR__ . '/utils.php';
 define("autoArchive", in_array("-a", $argv), in_array("--auto-archive", $argv));
 define("autoDiscard", in_array("-d", $argv), in_array("--auto-discard", $argv));
 

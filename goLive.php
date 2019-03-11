@@ -48,7 +48,7 @@ foreach ($argv as $curArg) {
 }
 
 //Load Utils
-require_once 'utils.php';
+require_once __DIR__ . '/utils.php';
 
 define("scriptVersion", "1.5");
 define("scriptVersionCode", "34");
@@ -87,19 +87,18 @@ if (help) {
 
 //Check for required files
 Utils::existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
-Utils::existsOrError('obs.php', "OBS Integration");
-Utils::existsOrError('config.php', "Username & Password Storage");
+Utils::existsOrError(__DIR__ . '/obs.php', "OBS Integration");
+Utils::existsOrError(__DIR__ . '/config.php', "Username & Password Storage");
 
 //Load Classes
 require_once __DIR__ . '/vendor/autoload.php'; //Composer
-require_once 'obs.php'; //OBS Utils
+require_once __DIR__ . '/obs.php'; //OBS Utils
+require_once __DIR__ . '/config.php';
 
 use InstagramAPI\Instagram;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
-
-require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
 main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin);
@@ -201,7 +200,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         }
 
         if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
-            Utils::log("Please" . ($helper->slobsPresent ? " launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
+            Utils::log("Please " . ($helper->slobsPresent ? "launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
             Utils::promptInput("");
         }
 
