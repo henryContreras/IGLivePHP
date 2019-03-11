@@ -76,6 +76,15 @@ class Utils
     }
 
     /**
+     * Helper function to check if the current OS is Mac.
+     * @return bool Returns true if running Windows.
+     */
+    public static function isMac(): bool
+    {
+        return strtoupper(PHP_OS) === 'DARWIN';
+    }
+
+    /**
      * Logs message to a output file.
      * @param string $message message to be logged to file.
      * @param string $file file to output to.

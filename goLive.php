@@ -17,7 +17,7 @@ if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
 $helpData = [];
 $helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
 $helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypasses the operating system check. Please do not use this if you don't use this if you don't know what you're doing!", "b", "bypass-check");
-$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows users.", "l", "force-legacy");
+$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows & Mac users.", "l", "force-legacy");
 $helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
 $helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
 $helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
@@ -216,11 +216,11 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
             Utils::log("Automatically Disabled Comments!");
         }
 
-        if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
-            Utils::log("Command Line: Windows Detected! A new console will open for command input and this will become command/like output.");
+        if ((Utils::isWindows() || Utils::isMac() || bypassCheck) && !forceLegacy) {
+            Utils::log("Command Line: Windows/macOS Detected! A new console will open for command input and this will become command/like output.");
             beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin);
         } else {
-            Utils::log("Command Line: macOS/Linux Detected! The script has entered legacy mode. Please use Windows for all the latest features.");
+            Utils::log("Command Line: Linux Detected! The script has entered legacy mode. Please use Windows or macOS for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
         }
 
@@ -280,12 +280,16 @@ function parseFinalViewers($finalResponse)
 
 function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin)
 {
-    if (bypassCheck && !Utils::isWindows()) {
+    if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
         Utils::log("Command Line: To start the new command line, please run the commandLine.php script.");
     } else {
         if ($console) {
-            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : ""), "r"));
+            if (Utils::isWindows()) {
+                pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : ""), "r"));
+            } elseif (Utils::isMac()) {
+                pclose(popen("osascript -e 'tell application \"Terminal\" to do script \"" . PHP_BINARY . " " . __DIR__ . "/commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "") . "\"'", "r"));
+            }
         }
     }
     @cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
