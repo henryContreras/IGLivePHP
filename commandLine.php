@@ -12,73 +12,108 @@ newCommand();
 function newCommand()
 {
     $line = Utils::promptInput("\n>");
-    if ($line == 'ecomments') {
-        sendRequest("ecomments", null);
-        Utils::log("Enabled Comments!");
-    } elseif ($line == 'dcomments') {
-        sendRequest("dcomments", null);
-        Utils::log("Disabled Comments!");
-    } elseif ($line == 'stop' || $line == 'end') {
-        $archived = "yes";
-        if (!autoArchive && !autoDiscard) {
-            Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
-            $archived = Utils::promptInput();
-        }
-        if (autoArchive || $archived == 'yes' && !autoDiscard) {
-            sendRequest("end", ["yes"]);
-        } else {
-            sendRequest("end", ["no"]);
-        }
-        Utils::log("Command Line Exiting! Stream *should* be ended.");
-        sleep(2);
-        exit();
-    } elseif ($line == 'pin') {
-        Utils::log("Please enter the comment id you would like to pin.");
-        $commentId = Utils::promptInput();
-        //TODO add comment id length check
-        Utils::log("Assuming that was a valid comment id, the comment should be pinned!");
-        sendRequest("pin", [$commentId]);
-    } elseif ($line == 'unpin') {
-        Utils::log("Please check the other window to see if the unpin succeeded!");
-        sendRequest("unpin", null);
-    } elseif ($line == 'pinned') {
-        Utils::log("Please check the other window to see the pinned comment!");
-        sendRequest("pinned", null);
-    } elseif ($line == 'comment') {
-        Utils::log("Please enter what you would like to comment.");
-        $text = Utils::promptInput();
-        Utils::log("Commented! Check the other window to ensure the comment was made!");
-        sendRequest("comment", [$text]);
-    } elseif ($line == 'url') {
-        Utils::log("Please check the other window for your stream url!");
-        sendRequest("url", null);
-    } elseif ($line == 'key') {
-        Utils::log("Please check the other window for your stream key!");
-        sendRequest("key", null);
-    } elseif ($line == 'info') {
-        Utils::log("Please check the other window for your stream info!");
-        sendRequest("info", null);
-    } elseif ($line == 'viewers') {
-        Utils::log("Please check the other window for your viewers list!");
-        sendRequest("viewers", null);
-    } elseif ($line == 'questions') {
-        Utils::log("Please check the other window for you questions list!");
-        sendRequest("questions", null);
-    } elseif ($line == 'showquestion') {
-        Utils::log("Please enter the question id you would like to display.");
-        $questionId = Utils::promptInput();
-        Utils::log("Please check the other window to make sure the question was displayed!");
-        sendRequest('showquestion', [$questionId]);
-    } elseif ($line == 'hidequestion') {
-        Utils::log("Please check the other window to make sure the question was removed!");
-        sendRequest('hidequestion', null);
-    } elseif ($line == 'wave') {
-        Utils::log("Please enter the user id you would like to wave at.");
-        $viewerId = Utils::promptInput();
-        Utils::log("Please check the other window to make sure the person was waved at!");
-        sendRequest('wave', [$viewerId]);
-    } elseif ($line == 'help') {
-        Utils::log("Commands:\n
+    switch ($line) {
+
+        case 'ecomments':
+            {
+                sendRequest("ecomments", null);
+                break;
+            }
+        case 'dcomments':
+            {
+                sendRequest("dcomments", null);
+                break;
+            }
+        case'stop':
+        case 'end':
+            {
+                $archived = "yes";
+                if (!autoArchive && !autoDiscard) {
+                    Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
+                    $archived = Utils::promptInput();
+                }
+                if (autoArchive || $archived == 'yes' && !autoDiscard) {
+                    sendRequest("end", ["yes"]);
+                } else {
+                    sendRequest("end", ["no"]);
+                }
+                Utils::log("Command Line Exiting! Stream *should* be ended.");
+                sleep(2);
+                exit();
+                break;
+            }
+        case 'pin':
+            {
+                Utils::log("Please enter the comment id you would like to pin.");
+                $commentId = Utils::promptInput();
+                //TODO add comment id length check
+                sendRequest("pin", [$commentId]);
+                break;
+            }
+        case 'unpin':
+            {
+                sendRequest("unpin", null);
+                break;
+            }
+        case 'pinned':
+            {
+                sendRequest("pinned", null);
+                break;
+            }
+        case 'comment':
+            {
+                Utils::log("Please enter what you would like to comment.");
+                $text = Utils::promptInput();
+                sendRequest("comment", [$text]);
+                break;
+            }
+        case 'url':
+            {
+                sendRequest("url", null);
+                break;
+            }
+        case 'key':
+            {
+                sendRequest("key", null);
+                break;
+            }
+        case 'info':
+            {
+                sendRequest("info", null);
+                break;
+            }
+        case 'viewers':
+            {
+                sendRequest("viewers", null);
+                break;
+            }
+        case 'questions':
+            {
+                sendRequest("questions", null);
+                break;
+            }
+        case 'showquestion':
+            {
+                Utils::log("Please enter the question id you would like to display.");
+                $questionId = Utils::promptInput();
+                sendRequest('showquestion', [$questionId]);
+                break;
+            }
+        case 'hidequestion':
+            {
+                sendRequest('hidequestion', null);
+                break;
+            }
+        case 'wave':
+            {
+                Utils::log("Please enter the user id you would like to wave at.");
+                $viewerId = Utils::promptInput();
+                sendRequest('wave', [$viewerId]);
+                break;
+            }
+        case 'help':
+            {
+                Utils::log("Commands:\n
         help - Prints this message\n
         url - Prints Stream URL\n
         key - Prints Stream Key\n
@@ -95,8 +130,13 @@ function newCommand()
         hidequestion - Hides displayed question if one is displayed\n
         wave - Waves at a user who has joined the stream\n
         stop - Stops the Live Stream");
-    } else {
-        Utils::log("Invalid Command. Type \"help\" for help!");
+                break;
+            }
+        default:
+            {
+                Utils::log("Invalid Command. Type \"help\" for help!");
+                break;
+            }
     }
     newCommand();
 }
@@ -108,6 +148,6 @@ function sendRequest(string $cmd, $values)
         'cmd' => $cmd,
         'values' => isset($values) ? $values : [],
     ]));
-    Utils::log("Please wait while we ensure the live script has received our request.");
+    Utils::log("Request Sent! Please check the other window to view the response!");
     sleep(2);
 }

@@ -313,125 +313,172 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             try {
                 $cmd = $request['cmd'];
                 $values = $request['values'];
-                if ($cmd == 'ecomments') {
-                    $ig->live->enableComments($broadcastId);
-                    Utils::log("Enabled Comments!");
-                } elseif ($cmd == 'dcomments') {
-                    $ig->live->disableComments($broadcastId);
-                    Utils::log("Disabled Comments!");
-                } elseif ($cmd == 'end') {
-                    if ($obsAuto) {
-                        Utils::log("OBS Integration: Killing OBS...");
-                        $helper->killOBS();
-                        Utils::log("OBS Integration: Restoring old basic.ini...");
-                        $helper->resetSettingsState();
-                        Utils::log("OBS Integration: Restoring old service.json...");
-                        $helper->resetServiceState();
-                    }
-                    $archived = $values[0];
-                    Utils::log("Wrapping up and exiting...");
-                    //Needs this to retain, I guess?
-                    parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
-                    $ig->live->end($broadcastId);
-                    if ($archived == 'yes') {
-                        $ig->live->addToPostLive($broadcastId);
-                        Utils::log("Livestream added to Archive!");
-                    }
-                    Utils::log("Ended stream!");
-                    @unlink(__DIR__ . '/request');
-                    sleep(2);
-                    exit();
-                } elseif ($cmd == 'pin') {
-                    $commentId = $values[0];
-                    if (strlen($commentId) === 17 && //Comment IDs are 17 digits
-                        is_numeric($commentId) && //Comment IDs only contain numbers
-                        strpos($commentId, '-') === false) { //Comment IDs are not negative
-                        $ig->live->pinComment($broadcastId, $commentId);
-                        Utils::log("Pinned a comment!");
-                    } else {
-                        Utils::log("You entered an invalid comment id!");
-                    }
-                } elseif ($cmd == 'unpin') {
-                    if ($lastCommentPin == -1) {
-                        Utils::log("You have no comment pinned!");
-                    } else {
-                        $ig->live->unpinComment($broadcastId, $lastCommentPin);
-                        Utils::log("Unpinned the pinned comment!");
-                    }
-                } elseif ($cmd == 'pinned') {
-                    if ($lastCommentPin == -1) {
-                        Utils::log("There is no comment pinned!");
-                    } else {
-                        Utils::log("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
-                    }
-                } elseif ($cmd == 'comment') {
-                    $text = $values[0];
-                    if ($text !== "") {
-                        $ig->live->comment($broadcastId, $text);
-                        Utils::log("Commented on stream!");
-                    } else {
-                        Utils::log("Comments may not be empty!");
-                    }
-                } elseif ($cmd == 'url') {
-                    Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-                } elseif ($cmd == 'key') {
-                    Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-                    if (Utils::isWindows()) {
-                        shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
-                        Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
-                    }
-                } elseif ($cmd == 'info') {
-                    $info = $ig->live->getInfo($broadcastId);
-                    $status = $info->getStatus();
-                    $muted = var_export($info->is_Messages(), true);
-                    $count = $info->getViewerCount();
-                    Utils::log("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
-                } elseif ($cmd == 'viewers') {
-                    Utils::log("Viewers:");
-                    $ig->live->getInfo($broadcastId);
-                    $vCount = 0;
-                    foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                        Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
-                        $vCount++;
-                    }
-                    if ($vCount > 0) {
-                        Utils::log("Total Viewers: " . $vCount);
-                    } else {
-                        Utils::log("There are no live viewers.");
-                    }
-                } elseif ($cmd == 'questions') {
-                    Utils::log("Questions:");
-                    foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
-                        Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
-                    }
-                } elseif ($cmd == 'showquestion') {
-                    $questionId = $values[0];
-                    if (strlen($questionId) === 17 && //Question IDs are 17 digits
-                        is_numeric($questionId) && //Question IDs only contain numbers
-                        strpos($questionId, '-') === false) { //Question IDs are not negative
-                        $lastQuestion = $questionId;
-                        $ig->live->showQuestion($broadcastId, $questionId);
-                        Utils::log("Displayed question!");
-                    } else {
-                        Utils::log("Invalid question id!");
-                    }
-                } elseif ($cmd == 'hidequestion') {
-                    if ($lastQuestion == -1) {
-                        Utils::log("There is no question displayed!");
-                    } else {
-                        $ig->live->hideQuestion($broadcastId, $lastQuestion);
-                        $lastQuestion = -1;
-                        Utils::log("Removed the displayed question!");
-                    }
-                } elseif ($cmd == 'wave') {
-                    $viewerId = $values[0];
-                    try {
-                        $ig->live->wave($broadcastId, $viewerId);
-                        Utils::log("Waved at a user!");
-                    } catch (Exception $waveError) {
-                        Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
-                        Utils::dump($waveError->getMessage());
-                    }
+                switch ($cmd) {
+
+                    case 'ecomments':
+                        {
+                            $ig->live->enableComments($broadcastId);
+                            Utils::log("Enabled Comments!");
+                            break;
+                        }
+                    case 'dcomments':
+                        {
+                            $ig->live->disableComments($broadcastId);
+                            Utils::log("Disabled Comments!");
+                            break;
+                        }
+                    case 'end':
+                        {
+                            if ($obsAuto) {
+                                Utils::log("OBS Integration: Killing OBS...");
+                                $helper->killOBS();
+                                Utils::log("OBS Integration: Restoring old basic.ini...");
+                                $helper->resetSettingsState();
+                                Utils::log("OBS Integration: Restoring old service.json...");
+                                $helper->resetServiceState();
+                            }
+                            $archived = $values[0];
+                            Utils::log("Wrapping up and exiting...");
+                            //Needs this to retain, I guess?
+                            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
+                            $ig->live->end($broadcastId);
+                            if ($archived == 'yes') {
+                                $ig->live->addToPostLive($broadcastId);
+                                Utils::log("Livestream added to Archive!");
+                            }
+                            Utils::log("Ended stream!");
+                            @unlink(__DIR__ . '/request');
+                            sleep(2);
+                            exit();
+                            break;
+                        }
+                    case 'pin':
+                        {
+                            $commentId = $values[0];
+                            if (strlen($commentId) === 17 && //Comment IDs are 17 digits
+                                is_numeric($commentId) && //Comment IDs only contain numbers
+                                strpos($commentId, '-') === false) { //Comment IDs are not negative
+                                $ig->live->pinComment($broadcastId, $commentId);
+                                Utils::log("Pinned a comment!");
+                            } else {
+                                Utils::log("You entered an invalid comment id!");
+                            }
+                            break;
+                        }
+                    case 'unpin':
+                        {
+                            if ($lastCommentPin == -1) {
+                                Utils::log("You have no comment pinned!");
+                            } else {
+                                $ig->live->unpinComment($broadcastId, $lastCommentPin);
+                                Utils::log("Unpinned the pinned comment!");
+                            }
+                            break;
+                        }
+                    case 'pinned':
+                        {
+                            if ($lastCommentPin == -1) {
+                                Utils::log("There is no comment pinned!");
+                            } else {
+                                Utils::log("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
+                            }
+                            break;
+                        }
+                    case 'comment':
+                        {
+                            $text = $values[0];
+                            if ($text !== "") {
+                                $ig->live->comment($broadcastId, $text);
+                                Utils::log("Commented on stream!");
+                            } else {
+                                Utils::log("Comments may not be empty!");
+                            }
+                            break;
+                        }
+                    case 'url':
+                        {
+                            Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+                            break;
+                        }
+                    case 'key':
+                        {
+                            Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+                            if (Utils::isWindows()) {
+                                shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                                Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
+                            }
+                            break;
+                        }
+                    case 'info':
+                        {
+                            $info = $ig->live->getInfo($broadcastId);
+                            $status = $info->getStatus();
+                            $muted = var_export($info->getMuted(), true);
+                            $count = $info->getViewerCount();
+                            Utils::log("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
+                            break;
+                        }
+                    case 'viewers':
+                        {
+                            Utils::log("Viewers:");
+                            $ig->live->getInfo($broadcastId);
+                            $vCount = 0;
+                            foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
+                                Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                                $vCount++;
+                            }
+                            if ($vCount > 0) {
+                                Utils::log("Total Viewers: " . $vCount);
+                            } else {
+                                Utils::log("There are no live viewers.");
+                            }
+                            break;
+                        }
+                    case 'questions':
+                        {
+                            Utils::log("Questions:");
+                            foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
+                                Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
+                            }
+                            break;
+                        }
+                    case 'showquestion':
+                        {
+                            $questionId = $values[0];
+                            if (strlen($questionId) === 17 && //Question IDs are 17 digits
+                                is_numeric($questionId) && //Question IDs only contain numbers
+                                strpos($questionId, '-') === false) { //Question IDs are not negative
+                                $lastQuestion = $questionId;
+                                $ig->live->showQuestion($broadcastId, $questionId);
+                                Utils::log("Displayed question!");
+                            } else {
+                                Utils::log("Invalid question id!");
+                            }
+                            break;
+                        }
+                    case 'hidequestion':
+                        {
+                            if ($lastQuestion == -1) {
+                                Utils::log("There is no question displayed!");
+                            } else {
+                                $ig->live->hideQuestion($broadcastId, $lastQuestion);
+                                $lastQuestion = -1;
+                                Utils::log("Removed the displayed question!");
+                            }
+                            break;
+                        }
+                    case 'wave':
+                        {
+                            $viewerId = $values[0];
+                            try {
+                                $ig->live->wave($broadcastId, $viewerId);
+                                Utils::log("Waved at a user!");
+                            } catch (Exception $waveError) {
+                                Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+                                Utils::dump($waveError->getMessage());
+                            }
+                        }
+                        break;
                 }
                 @unlink(__DIR__ . '/request');
             } catch (Exception $cmdExc) {
