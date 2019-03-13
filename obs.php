@@ -39,7 +39,10 @@ class ObsHelper
         }
 
         clearstatcache();
-        if (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
+        //Because never trust user input...
+        if (OBS_CUSTOM_PATH !== 'INSERT_PATH' && @file_exists((substr(str_replace('\\', '/', OBS_CUSTOM_PATH), -1) === '/' ? str_replace("\\", '/', OBS_CUSTOM_PATH) : str_replace("\\", '/', OBS_CUSTOM_PATH) . '/'))) {
+            $this->obs_path = (substr(str_replace('\\', '/', OBS_CUSTOM_PATH), -1) === '/' ? str_replace("\\", '/', OBS_CUSTOM_PATH) : str_replace("\\", '/', OBS_CUSTOM_PATH) . '/');
+        } else if (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files/obs-studio/";
         } elseif (@file_exists("C:/Program Files (x86)/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
@@ -223,9 +226,9 @@ class ObsHelper
     public function killOBS(): bool
     {
         if ($this->slobsPresent) {
-            return strpos(shell_exec("taskkill /IM \"crash-handler-process.exe\" /F && taskkill /IM \"crashpad_handler.exe\" /F && taskkill /IM \"Streamlabs OBS.exe\" /F && taskkill /IM obs64.exe /F"), "SUCCESS");
+            return strpos(shell_exec("taskkill /IM \"crash-handler-process.exe\" /F && taskkill /IM \"crashpad_handler.exe\" /F && taskkill /IM \"Streamlabs OBS.exe\" /F && taskkill /IM " . OBS_EXEC_NAME . " /F"), "SUCCESS");
         }
-        return strpos(shell_exec("taskkill /IM obs64.exe /F"), "SUCCESS");
+        return strpos(shell_exec("taskkill /IM " . OBS_EXEC_NAME . " /F"), "SUCCESS");
     }
 
     /**
@@ -238,7 +241,7 @@ class ObsHelper
             pclose(popen("cd \"$this->obs_path\" && start /B \"Streamlabs OBS.exe\"", "r"));
             return true;
         }
-        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe" . ($this->autoStream ? " --startstreaming" : "") . " --profile $this->profile_name", "r"));
+        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B " . OBS_EXEC_NAME . ($this->autoStream ? " --startstreaming" : "") . " --profile $this->profile_name", "r"));
         return true;
     }
 
@@ -248,7 +251,7 @@ class ObsHelper
      */
     public function isObsRunning(): bool
     {
-        $res = shell_exec("tasklist /FI \"IMAGENAME eq obs64.exe\" 2>NUL | find /I /N \"obs64.exe\">NUL && if \"%ERRORLEVEL%\"==\"0\" echo running");
+        $res = shell_exec("tasklist /FI \"IMAGENAME eq " . OBS_EXEC_NAME . "\" 2>NUL | find /I /N \"" . OBS_EXEC_NAME . "\">NUL && if \"%ERRORLEVEL%\"==\"0\" echo running");
         if (strcmp($res, "") !== 0) {
             return true;
         }
