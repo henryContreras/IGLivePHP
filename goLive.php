@@ -71,8 +71,9 @@ if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
 }
 
 if (!Utils::isApiDevMaster()) {
-    Utils::log("You're using an outdated Instagram-API Version! Forcing an update...");
+    Utils::log("Outdated Instagram-API version detected, attempting to fix this for you. This may take a while...");
     exec(PHP_BINARY . " update.php");
+    Utils::log("Update Finished! Exiting the script, please re-run the script now.");
     exit();
 }
 
