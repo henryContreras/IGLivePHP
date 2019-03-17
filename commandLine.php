@@ -28,6 +28,20 @@ function newCommand()
                 sendRequest($line, null);
                 break;
             }
+        case 'comment':
+            {
+                Utils::log("Please type what you would like to comment...");
+                $text = Utils::promptInput();
+                sendRequest("comment", [$text]);
+                break;
+            }
+        case 'showquestion':
+            {
+                Utils::log("Please enter the question id you would like to display...");
+                $questionId = Utils::promptInput();
+                sendRequest("showquestion", [$questionId]);
+                break;
+            }
         case'stop':
         case 'end':
             {
