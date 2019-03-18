@@ -42,7 +42,7 @@ function newCommand()
                 sendRequest("showquestion", [$questionId]);
                 break;
             }
-        case'stop':
+        case 'stop':
         case 'end':
             {
                 $archived = "yes";
@@ -50,14 +50,10 @@ function newCommand()
                     Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
                     $archived = Utils::promptInput();
                 }
-                if (autoArchive || $archived == 'yes' && !autoDiscard) {
-                    sendRequest("end", ["yes"]);
-                } else {
-                    sendRequest("end", ["no"]);
-                }
+                sendRequest("end", [(autoArchive || $archived == 'yes' && !autoDiscard) ? "yes" : "no"]);
                 Utils::log("Command Line Exiting! Stream *should* be ended.");
                 sleep(2);
-                exit();
+                exit(1);
                 break;
             }
         case 'pin':

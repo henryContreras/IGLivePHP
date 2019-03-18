@@ -105,7 +105,7 @@ class Utils
             self::log("The following file, `" . $path . "` is required and not found by the script for the following reason: " . $reason);
             self::log("Please make sure you follow the setup guide correctly.");
             self::dump();
-            exit();
+            exit(1);
         }
     }
 
@@ -167,7 +167,7 @@ class Utils
                     if ($attemptBypass !== 'yes') {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
                         self::dump();
-                        exit();
+                        exit(1);
                     }
                     self::log("Preparing to verify account...");
                     sleep(3);
@@ -180,7 +180,7 @@ class Utils
                         $verification_method = 1;
                     } else {
                         self::log("Aborting!");
-                        exit();
+                        exit(1);
                     }
 
                     /** @noinspection PhpUndefinedMethodInspection */
@@ -199,7 +199,7 @@ class Utils
                         if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
                             if ($customResponse['action'] === 'close') {
                                 self::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                                exit();
+                                exit(1);
                             }
                         }
 
@@ -217,27 +217,24 @@ class Utils
                             ->getDecodedResponse();
 
                         if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
-                            self::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                            exit();
-                        } else {
-                            self::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
-                            exit();
+                            self::log("Suspicious Login: Challenge Probably Solved!");
+                            exit(1);
                         }
                     } catch (Exception $ex) {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
                         self::dump($ex->getMessage());
-                        exit();
+                        exit(1);
                     }
                 }
             } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
                 self::log("Error While Logging in to Instagram: " . $e->getMessage());
                 self::dump();
-                exit();
+                exit(1);
             }
 
             self::log("Error While Logging in to Instagram: " . $e->getMessage());
             self::dump();
-            exit();
+            exit(1);
         }
         return $ig;
     }

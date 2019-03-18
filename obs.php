@@ -42,7 +42,7 @@ class ObsHelper
         //Because never trust user input...
         if (OBS_CUSTOM_PATH !== 'INSERT_PATH' && @file_exists((substr(str_replace('\\', '/', OBS_CUSTOM_PATH), -1) === '/' ? str_replace("\\", '/', OBS_CUSTOM_PATH) : str_replace("\\", '/', OBS_CUSTOM_PATH) . '/'))) {
             $this->obs_path = (substr(str_replace('\\', '/', OBS_CUSTOM_PATH), -1) === '/' ? str_replace("\\", '/', OBS_CUSTOM_PATH) : str_replace("\\", '/', OBS_CUSTOM_PATH) . '/');
-        } else if (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
+        } elseif (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files/obs-studio/";
         } elseif (@file_exists("C:/Program Files (x86)/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
@@ -64,12 +64,12 @@ class ObsHelper
             return;
         }
 
-        $profiles = $dirs = array_filter(glob(getenv("appdata") . "\obs-studio\basic\profiles\*"), 'is_dir');
+        $profiles = array_filter(glob(getenv("appdata") . "\obs-studio\basic\profiles\*"), 'is_dir');
         $profile = null;
         if (count($profiles) === 0) {
             $this->obs_path = null;
             return;
-        } else if (count($profiles) === 1) {
+        } elseif (count($profiles) === 1) {
             $profile = $profiles[0];
         } else {
             Utils::log("OBS Integration: Multi-Profile environment detected! Please select your current OBS profile.");
@@ -197,11 +197,10 @@ class ObsHelper
             if (!$bitRateTriggered) {
                 $newLines = $newLines . "[SimpleOutput]\nVBitrate" . OBS_BITRATE . "\n";
             }
-        } else {
-            Utils::log("OBS Integration: Unable to modify settings!");
+            @file_put_contents($this->settings_path, $newLines);
+            return;
         }
-
-        @file_put_contents($this->settings_path, $newLines);
+        Utils::log("OBS Integration: Unable to modify settings!");
     }
 
     /**
