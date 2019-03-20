@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */
+<?php
+/** @noinspection PhpComposerExtensionStubsInspection */
 /** @noinspection PhpUndefinedConstantInspection */
 
 set_time_limit(0);
@@ -9,17 +10,18 @@ if (php_sapi_name() !== "cli") {
 
 if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
     print("This script requires PHP version 7 or higher! Please update your php installation before attempting to run this script again!");
-    exit();
+    exit(1);
 }
 
 //Argument Processing
 $helpData = [];
 $helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
 $helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypasses the operating system check. Please do not use this if you don't use this if you don't know what you're doing!", "b", "bypass-check");
-$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows users.", "l", "force-legacy");
+$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows & Mac users.", "l", "force-legacy");
 $helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
 $helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
 $helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
+$helpData = registerArgument($helpData, $argv, "autoDiscard", "Automatically discards a live stream after it ends.", "d", "auto-discard");
 $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
 $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
@@ -30,7 +32,7 @@ $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the a
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
-$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "d", "dump");
+$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
 $streamTotalSec = 0;
@@ -46,25 +48,33 @@ foreach ($argv as $curArg) {
 }
 
 //Load Utils
-require 'utils.php';
+require_once __DIR__ . '/utils.php';
 
-define("scriptVersion", "1.4");
-define("scriptVersionCode", "31");
+define("scriptVersion", "1.5");
+define("scriptVersionCode", "37");
 define("scriptFlavor", "stable");
-Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
-
-if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
-    Utils::log("Update: A new update is available, run the `update.php` script to fetch it!");
-}
 
 if (dumpFlavor) {
     Utils::log(scriptFlavor);
-    exit();
+    exit(1);
 }
 
 if (dump) {
     Utils::dump();
-    exit();
+    exit(1);
+}
+
+Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
+
+if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
+    Utils::log("\nUpdate: A new update is available, run the `update.php` script to fetch it!\n");
+}
+
+if (!Utils::isApiDevMaster()) {
+    Utils::log("Outdated Instagram-API version detected, attempting to fix this for you. This may take a while...");
+    exec(PHP_BINARY . " update.php");
+    Utils::log("Update Finished! Exiting the script, please re-run the script now.");
+    exit(1);
 }
 
 if (help) {
@@ -73,33 +83,23 @@ if (help) {
         $dOption = json_decode($option, true);
         Utils::log($dOption['tacks']['mini'] . ($dOption['tacks']['full'] !== null ? " (" . $dOption['tacks']['full'] . "): " : ": ") . $dOption['description']);
     }
-    exit();
+    exit(1);
 }
 
 //Check for required files
 Utils::existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
-Utils::existsOrError('obs.php', "OBS Integration");
-Utils::existsOrError('config.php', "Username & Password Storage");
+Utils::existsOrError(__DIR__ . '/obs.php', "OBS Integration");
+Utils::existsOrError(__DIR__ . '/config.php', "Username & Password Storage");
 
 //Load Classes
-require __DIR__ . '/vendor/autoload.php'; //Composer
-require 'obs.php'; //OBS Utils
+require_once __DIR__ . '/vendor/autoload.php'; //Composer
+require_once __DIR__ . '/obs.php'; //OBS Utils
+require_once __DIR__ . '/config.php';
 
 use InstagramAPI\Instagram;
-use InstagramAPI\Exception\ChallengeRequiredException;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
-
-class ExtendedInstagram extends Instagram
-{
-    public function changeUser($username, $password)
-    {
-        $this->_setUser($username, $password);
-    }
-}
-
-require_once 'config.php';
 
 //Run the script and spawn a new console window if applicable.
 main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin);
@@ -110,138 +110,25 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
     $password = IG_PASS;
     if (promptLogin) {
         Utils::log("Please enter your credentials...");
-        print "Username: ";
-        $usernameHandle = fopen("php://stdin", "r");
-        $username = trim(fgets($usernameHandle));
-        fclose($usernameHandle);
-        print "Password: ";
-        $passwordHandle = fopen("php://stdin", "r");
-        $password = trim(fgets($passwordHandle));
-        fclose($passwordHandle);
+        $username = Utils::promptInput("Username:");
+        $password = Utils::promptInput("Password:");
     }
 
     if ($username == "USERNAME" || $password == "PASSWORD") {
         Utils::log("Default Username or Password have not been changed! Exiting...");
-        exit();
+        exit(1);
     }
 
 //Login to Instagram
     Utils::log("Logging into Instagram! Please wait as this can take up-to two minutes...");
-    $ig = new ExtendedInstagram(false, false);
-    try {
-        $loginResponse = $ig->login($username, $password);
-
-        if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
-            Utils::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
-            $twoFactorIdentifier = $loginResponse->getTwoFactorInfo()->getTwoFactorIdentifier();
-            print "\nType your verification code> ";
-            $handle = fopen("php://stdin", "r");
-            $verificationCode = trim(fgets($handle));
-            fclose($handle);
-            Utils::log("Logging in with verification token...");
-            $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
-        }
-    } catch (\Exception $e) {
-        try {
-            /** @noinspection PhpUndefinedMethodInspection */
-            if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
-                $response = $e->getResponse();
-
-                Utils::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
-                Utils::log("Suspicious Login: Please only attempt this once or twice if your attempts are unsuccessful. If this keeps happening, this script is not for you :(.");
-                print "> ";
-                $handle = fopen("php://stdin", "r");
-                $attemptBypass = trim(fgets($handle));
-                fclose($handle);
-                if ($attemptBypass == 'yes') {
-                    Utils::log("Preparing to verify account...");
-                    sleep(3);
-
-                    Utils::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
-                    print "> ";
-                    $handle = fopen("php://stdin", "r");
-                    $choice = trim(fgets($handle));
-                    fclose($handle);
-                    if ($choice === "sms") {
-                        $verification_method = 0;
-                    } elseif ($choice === "email") {
-                        $verification_method = 1;
-                    } else {
-                        Utils::log("Aborting!");
-                        exit();
-                    }
-
-                    /** @noinspection PhpUndefinedMethodInspection */
-                    $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
-                    $customResponse = $ig->request($checkApiPath)
-                        ->setNeedsAuth(false)
-                        ->addPost('choice', $verification_method)
-                        ->addPost('_uuid', $ig->uuid)
-                        ->addPost('guid', $ig->uuid)
-                        ->addPost('device_id', $ig->device_id)
-                        ->addPost('_uid', $ig->account_id)
-                        ->addPost('_csrftoken', $ig->client->getToken())
-                        ->getDecodedResponse();
-
-                    try {
-                        if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
-                            if ($customResponse['action'] === 'close') {
-                                Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                                exit();
-                            }
-                        }
-
-                        Utils::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
-                        print "> ";
-                        $handle = fopen("php://stdin", "r");
-                        $cCode = trim(fgets($handle));
-                        fclose($handle);
-                        $ig->changeUser($username, $password);
-                        $customResponse = $ig->request($checkApiPath)
-                            ->setNeedsAuth(false)
-                            ->addPost('security_code', $cCode)
-                            ->addPost('_uuid', $ig->uuid)
-                            ->addPost('guid', $ig->uuid)
-                            ->addPost('device_id', $ig->device_id)
-                            ->addPost('_uid', $ig->account_id)
-                            ->addPost('_csrftoken', $ig->client->getToken())
-                            ->getDecodedResponse();
-
-                        if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
-                            Utils::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                            exit();
-                        } else {
-                            Utils::log("Suspicious Login: I have no clue if that just worked, re-run me to check.");
-                            exit();
-                        }
-                    } catch (Exception $ex) {
-                        Utils::log("Suspicious Login: Account Challenge Failed :(.");
-                        Utils::dump($ex->getMessage());
-                        exit();
-                    }
-                } else {
-                    Utils::log("Suspicious Login: Account Challenge Failed :(.");
-                    Utils::dump();
-                    exit();
-                }
-            }
-        } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
-            Utils::log("Error While Logging in to Instagram: " . $e->getMessage());
-            Utils::dump();
-            exit();
-        }
-
-        Utils::log("Error While Logging in to Instagram: " . $e->getMessage());
-        Utils::dump();
-        exit();
-    }
+    $ig = Utils::loginFlow($username, $password);
 
 //Block Responsible for Creating the Livestream.
     try {
         if (!$ig->isMaybeLoggedIn) {
             Utils::log("Error While Logging in to Instagram: isMaybeLoggedIn fail!");
             Utils::dump();
-            exit();
+            exit(1);
         }
         Utils::log("Logged In! Creating Livestream...");
         $stream = $ig->live->create();
@@ -267,11 +154,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         } else {
             if (!obsAutomationAccept) {
                 Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.");
-                print "> ";
-                $eoiH = fopen("php://stdin", "r");
-                $eoi = trim(fgets($eoiH));
-                fclose($eoiH);
-                if ($eoi !== "yes") {
+                if (Utils::promptInput() !== "yes") {
                     $obsAutomation = false;
                 }
             }
@@ -312,49 +195,45 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
                     Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
                 } else {
                     Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                    $oPauseH = fopen("php://stdin", "r");
-                    fgets($oPauseH);
-                    fclose($oPauseH);
+                    Utils::promptInput("");
                 }
             }
         }
 
         if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
-            Utils::log("Please" . ($helper->slobsPresent ? " launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
-            $pauseH = fopen("php://stdin", "r");
-            fgets($pauseH);
-            fclose($pauseH);
+            Utils::log("Please " . ($helper->slobsPresent ? "launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
+            Utils::promptInput("");
         }
 
         $ig->live->start($broadcastId);
-
-        if (startDisableComments) {
-            $ig->live->disableComments($broadcastId);
-            Utils::log("Automatically Disabled Comments!");
-        }
 
         if ($autoPin !== null) {
             $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
             Utils::log("Automatically Pinned a Comment!");
         }
 
-        if ((Utils::isWindows() || bypassCheck) && !forceLegacy) {
-            Utils::log("Command Line: Windows Detected! A new console will open for command input and this will become command/like output.");
+        if (startDisableComments) {
+            $ig->live->disableComments($broadcastId);
+            Utils::log("Automatically Disabled Comments!");
+        }
+
+        if ((Utils::isWindows() || Utils::isMac() || bypassCheck) && !forceLegacy) {
+            Utils::log("Command Line: Windows/macOS Detected! A new console will open for command input and this will become command/like output.");
             beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin);
         } else {
-            Utils::log("Command Line: macOS/Linux Detected! The script has entered legacy mode. Please use Windows for all the latest features.");
+            Utils::log("Command Line: Linux Detected! The script has entered legacy mode. Please use Windows or macOS for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
         }
 
         Utils::log("Unable to start command lines, attempting clean up!");
-        $ig->live->getFinalViewerList($broadcastId);
+        parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
         $ig->live->end($broadcastId);
         Utils::dump();
-        exit();
+        exit(1);
     } catch (\Exception $e) {
         echo 'Error While Creating Livestream: ' . $e->getMessage() . "\n";
         Utils::dump($e->getMessage());
-        exit();
+        exit(1);
     }
 }
 
@@ -377,27 +256,41 @@ function addComment(Comment $comment, bool $system = false)
 }
 
 /**
- * @param \InstagramAPI\Response\Model\User[] $users
+ * @param \InstagramAPI\Response\FinalViewerListResponse $finalResponse
  */
-function parseFinalViewers($users)
+function parseFinalViewers($finalResponse)
 {
+    $finalViewers = '';
+    foreach ($finalResponse->getUsers() as $user) {
+        $finalViewers = $finalViewers . '@' . $user->getUsername() . ', ';
+    }
+    $finalViewers = rtrim($finalViewers, " ,");
+
+    if ($finalResponse->getTotalUniqueViewerCount() > 0) {
+        Utils::log($finalResponse->getTotalUniqueViewerCount() . " Final Viewer(s).");
+        Utils::log("Top Viewers: $finalViewers");
+    } else {
+        Utils::log("Your stream had no viewers :(");
+    }
+
+
     if (logCommentOutput) {
-        $finalViewers = 'Final Viewers: ';
-        foreach ($users as $user) {
-            $finalViewers = $finalViewers . $user->getUsername() . ', ';
-        }
-        Utils::logOutput($finalViewers);
+        Utils::logOutput($finalResponse->getTotalUniqueViewerCount() . " Final Viewer(s): $finalViewers");
     }
 }
 
 function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin)
 {
-    if (bypassCheck && !Utils::isWindows()) {
+    if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
         Utils::log("Command Line: To start the new command line, please run the commandLine.php script.");
     } else {
         if ($console) {
-            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : ""), "r"));
+            if (Utils::isWindows()) {
+                pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : ""), "r"));
+            } elseif (Utils::isMac()) {
+                pclose(popen("osascript -e 'tell application \"Terminal\" to do script \"" . PHP_BINARY . " " . __DIR__ . "/commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "") . "\"'", "r"));
+            }
         }
     }
     @cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
@@ -425,127 +318,174 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             try {
                 $cmd = $request['cmd'];
                 $values = $request['values'];
-                if ($cmd == 'ecomments') {
-                    $ig->live->enableComments($broadcastId);
-                    Utils::log("Enabled Comments!");
-                } elseif ($cmd == 'dcomments') {
-                    $ig->live->disableComments($broadcastId);
-                    Utils::log("Disabled Comments!");
-                } elseif ($cmd == 'end') {
-                    if ($obsAuto) {
-                        Utils::log("OBS Integration: Killing OBS...");
-                        $helper->killOBS();
-                        Utils::log("OBS Integration: Restoring old basic.ini...");
-                        $helper->resetSettingsState();
-                        Utils::log("OBS Integration: Restoring old service.json...");
-                        $helper->resetServiceState();
-                    }
-                    $archived = $values[0];
-                    Utils::log("Wrapping up and exiting...");
-                    //Needs this to retain, I guess?
-                    parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
-                    $ig->live->end($broadcastId);
-                    if ($archived == 'yes') {
-                        $ig->live->addToPostLive($broadcastId);
-                        Utils::log("Livestream added to Archive!");
-                    }
-                    Utils::log("Ended stream!");
-                    unlink(__DIR__ . '/request');
-                    sleep(2);
-                    exit();
-                } elseif ($cmd == 'pin') {
-                    $commentId = $values[0];
-                    if (strlen($commentId) === 17 && //Comment IDs are 17 digits
-                        is_numeric($commentId) && //Comment IDs only contain numbers
-                        strpos($commentId, '-') === false) { //Comment IDs are not negative
-                        $ig->live->pinComment($broadcastId, $commentId);
-                        Utils::log("Pinned a comment!");
-                    } else {
-                        Utils::log("You entered an invalid comment id!");
-                    }
-                } elseif ($cmd == 'unpin') {
-                    if ($lastCommentPin == -1) {
-                        Utils::log("You have no comment pinned!");
-                    } else {
-                        $ig->live->unpinComment($broadcastId, $lastCommentPin);
-                        Utils::log("Unpinned the pinned comment!");
-                    }
-                } elseif ($cmd == 'pinned') {
-                    if ($lastCommentPin == -1) {
-                        Utils::log("There is no comment pinned!");
-                    } else {
-                        Utils::log("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
-                    }
-                } elseif ($cmd == 'comment') {
-                    $text = $values[0];
-                    if ($text !== "") {
-                        $ig->live->comment($broadcastId, $text);
-                        Utils::log("Commented on stream!");
-                    } else {
-                        Utils::log("Comments may not be empty!");
-                    }
-                } elseif ($cmd == 'url') {
-                    Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-                } elseif ($cmd == 'key') {
-                    Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-                    if (Utils::isWindows()) {
-                        shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
-                        Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
-                    }
-                } elseif ($cmd == 'info') {
-                    $info = $ig->live->getInfo($broadcastId);
-                    $status = $info->getStatus();
-                    $muted = var_export($info->is_Messages(), true);
-                    $count = $info->getViewerCount();
-                    Utils::log("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
-                } elseif ($cmd == 'viewers') {
-                    Utils::log("Viewers:");
-                    $ig->live->getInfo($broadcastId);
-                    $vCount = 0;
-                    foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                        Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
-                        $vCount++;
-                    }
-                    if ($vCount > 0) {
-                        Utils::log("Total Viewers: " . $vCount);
-                    } else {
-                        Utils::log("There are no live viewers.");
-                    }
-                } elseif ($cmd == 'questions') {
-                    Utils::log("Questions:");
-                    foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
-                        Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
-                    }
-                } elseif ($cmd == 'showquestion') {
-                    $questionId = $values[0];
-                    if (strlen($questionId) === 17 && //Question IDs are 17 digits
-                        is_numeric($questionId) && //Question IDs only contain numbers
-                        strpos($questionId, '-') === false) { //Question IDs are not negative
-                        $lastQuestion = $questionId;
-                        $ig->live->showQuestion($broadcastId, $questionId);
-                        Utils::log("Displayed question!");
-                    } else {
-                        Utils::log("Invalid question id!");
-                    }
-                } elseif ($cmd == 'hidequestion') {
-                    if ($lastQuestion == -1) {
-                        Utils::log("There is no question displayed!");
-                    } else {
-                        $ig->live->hideQuestion($broadcastId, $lastQuestion);
-                        $lastQuestion = -1;
-                        Utils::log("Removed the displayed question!");
-                    }
-                } elseif ($cmd == 'wave') {
-                    $viewerId = $values[0];
-                    try {
-                        $ig->live->wave($broadcastId, $viewerId);
-                        Utils::log("Waved at a user!");
-                    } catch (Exception $waveError) {
-                        Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
-                        Utils::dump($waveError->getMessage());
-                    }
+                switch ($cmd) {
+
+                    case 'ecomments':
+                        {
+                            $ig->live->enableComments($broadcastId);
+                            Utils::log("Enabled Comments!");
+                            break;
+                        }
+                    case 'dcomments':
+                        {
+                            $ig->live->disableComments($broadcastId);
+                            Utils::log("Disabled Comments!");
+                            break;
+                        }
+                    case 'end':
+                        {
+                            if ($obsAuto) {
+                                Utils::log("OBS Integration: Killing OBS...");
+                                $helper->killOBS();
+                                Utils::log("OBS Integration: Restoring old basic.ini...");
+                                $helper->resetSettingsState();
+                                Utils::log("OBS Integration: Restoring old service.json...");
+                                $helper->resetServiceState();
+                            }
+                            $archived = $values[0];
+                            Utils::log("Wrapping up and exiting...");
+                            //Needs this to retain, I guess?
+                            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
+                            $ig->live->end($broadcastId);
+                            if ($archived == 'yes') {
+                                $ig->live->addToPostLive($broadcastId);
+                                Utils::log("Livestream added to Archive!");
+                            }
+                            Utils::log("Ended stream!");
+                            @unlink(__DIR__ . '/request');
+                            sleep(2);
+                            exit(1);
+                            break;
+                        }
+                    case 'pin':
+                        {
+                            $commentId = $values[0];
+                            if (strlen($commentId) === 17 && //Comment IDs are 17 digits
+                                is_numeric($commentId) && //Comment IDs only contain numbers
+                                strpos($commentId, '-') === false) { //Comment IDs are not negative
+                                $ig->live->pinComment($broadcastId, $commentId);
+                                Utils::log("Pinned a comment!");
+                            } else {
+                                Utils::log("You entered an invalid comment id!");
+                            }
+                            break;
+                        }
+                    case 'unpin':
+                        {
+                            if ($lastCommentPin == -1) {
+                                Utils::log("You have no comment pinned!");
+                            } else {
+                                $ig->live->unpinComment($broadcastId, $lastCommentPin);
+                                Utils::log("Unpinned the pinned comment!");
+                            }
+                            break;
+                        }
+                    case 'pinned':
+                        {
+                            if ($lastCommentPin == -1) {
+                                Utils::log("There is no comment pinned!");
+                            } else {
+                                Utils::log("Pinned Comment:\n @" . $lastCommentPinHandle . ': ' . $lastCommentPinText);
+                            }
+                            break;
+                        }
+                    case 'comment':
+                        {
+                            $text = $values[0];
+                            if ($text !== "") {
+                                $ig->live->comment($broadcastId, $text);
+                                Utils::log("Commented on stream!");
+                            } else {
+                                Utils::log("Comments may not be empty!");
+                            }
+                            break;
+                        }
+                    case 'url':
+                        {
+                            Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+                            break;
+                        }
+                    case 'key':
+                        {
+                            Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+                            if (Utils::isWindows()) {
+                                shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                                Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
+                            }
+                            break;
+                        }
+                    case 'info':
+                        {
+                            $info = $ig->live->getInfo($broadcastId);
+                            $status = $info->getStatus();
+                            $muted = var_export($info->getMuted(), true);
+                            $count = $info->getViewerCount();
+                            Utils::log("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
+                            break;
+                        }
+                    case 'viewers':
+                        {
+                            Utils::log("Viewers:");
+                            $ig->live->getInfo($broadcastId);
+                            $vCount = 0;
+                            foreach ($ig->live->getViewerList($broadcastId)->getUsers() as &$cuser) {
+                                Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                                $vCount++;
+                            }
+                            if ($vCount > 0) {
+                                Utils::log("Total Viewers: " . $vCount);
+                            } else {
+                                Utils::log("There are no live viewers.");
+                            }
+                            break;
+                        }
+                    case 'questions':
+                        {
+                            Utils::log("Questions:");
+                            foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
+                                Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
+                            }
+                            break;
+                        }
+                    case 'showquestion':
+                        {
+                            $questionId = $values[0];
+                            if (strlen($questionId) === 17 && //Question IDs are 17 digits
+                                is_numeric($questionId) && //Question IDs only contain numbers
+                                strpos($questionId, '-') === false) { //Question IDs are not negative
+                                $lastQuestion = $questionId;
+                                $ig->live->showQuestion($broadcastId, $questionId);
+                                Utils::log("Displayed question!");
+                            } else {
+                                Utils::log("Invalid question id!");
+                            }
+                            break;
+                        }
+                    case 'hidequestion':
+                        {
+                            if ($lastQuestion == -1) {
+                                Utils::log("There is no question displayed!");
+                            } else {
+                                $ig->live->hideQuestion($broadcastId, $lastQuestion);
+                                $lastQuestion = -1;
+                                Utils::log("Removed the displayed question!");
+                            }
+                            break;
+                        }
+                    case 'wave':
+                        {
+                            $viewerId = $values[0];
+                            try {
+                                $ig->live->wave($broadcastId, $viewerId);
+                                Utils::log("Waved at a user!");
+                            } catch (Exception $waveError) {
+                                Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+                                Utils::dump($waveError->getMessage());
+                            }
+                        }
+                        break;
                 }
-                unlink(__DIR__ . '/request');
+                @unlink(__DIR__ . '/request');
             } catch (Exception $cmdExc) {
                 echo 'Error While Executing Command: ' . $cmdExc->getMessage() . "\n";
                 Utils::dump($cmdExc->getMessage());
@@ -602,18 +542,16 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("OBS Integration: Restoring old service.json...");
                 $helper->resetServiceState();
             }
-            parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to user requested stream limit of $streamTotalSec seconds!");
 
             $archived = "yes";
-            if (!autoArchive) {
-                print "Would you like to archive this stream?\n> ";
-                $handle = fopen("php://stdin", "r");
-                $archived = trim(fgets($handle));
-                fclose($handle);
+            if (!autoArchive && !autoDiscard) {
+                Utils::log("Would you like to archive this stream?");
+                $archived = Utils::promptInput();
             }
-            if ($archived == 'yes') {
+            if (autoArchive || $archived == 'yes' && !autoDiscard) {
                 Utils::log("Adding to Archive...");
                 $ig->live->addToPostLive($broadcastId);
                 Utils::log("Livestream added to archive!");
@@ -621,7 +559,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             Utils::log("Stream Ended! Please close the console window!");
             @unlink(__DIR__ . '/request');
             sleep(2);
-            exit();
+            exit(1);
         }
 
         //Calculate Times for Hour-Cutoff
@@ -634,17 +572,15 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("OBS Integration: Restoring old service.json...");
                 $helper->resetServiceState();
             }
-            parseFinalViewers($ig->live->getFinalViewerList($broadcastId)->getUsers());
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
             $ig->live->end($broadcastId);
             Utils::log("Stream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
-            if (!autoArchive) {
-                print "Would you like to archive this stream?\n> ";
-                $handle = fopen("php://stdin", "r");
-                $archived = trim(fgets($handle));
-                fclose($handle);
+            if (!autoArchive && !autoDiscard) {
+                Utils::log("Would you like to archive this stream?");
+                $archived = Utils::promptInput();
             }
-            if ($archived == 'yes') {
+            if (autoArchive || $archived == 'yes' && !autoDiscard) {
                 Utils::log("Adding to Archive...");
                 $ig->live->addToPostLive($broadcastId);
                 Utils::log("Livestream added to archive!");
@@ -652,10 +588,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             $restart = "yes";
             if (!infiniteStream) {
                 Utils::log("Would you like to go live again?");
-                print "> ";
-                $handle = fopen("php://stdin", "r");
-                $restart = trim(fgets($handle));
-                fclose($handle);
+                $restart = Utils::promptInput();
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
@@ -664,10 +597,10 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             Utils::log("Stream Ended! Please close the console window!");
             @unlink(__DIR__ . '/request');
             sleep(2);
-            exit();
+            exit(1);
         }
 
-        sleep(1);
+        sleep(2);
     } while (!$exit);
 }
 
@@ -683,102 +616,125 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsAuto, ObsHelper $helper)
 {
     print "\n> ";
-    $handle = fopen("php://stdin", "r");
-    $line = trim(fgets($handle));
-    fclose($handle);
-    if ($line == 'ecomments') {
-        $live->enableComments($broadcastId);
-        Utils::log("Enabled Comments!");
-    } elseif ($line == 'dcomments') {
-        $live->disableComments($broadcastId);
-        Utils::log("Disabled Comments!");
-    } elseif ($line == 'stop' || $line == 'end') {
-        fclose($handle);
-        if ($obsAuto) {
-            Utils::log("OBS Integration: Killing OBS...");
-            $helper->killOBS();
-            Utils::log("OBS Integration: Restoring old basic.ini...");
-            $helper->resetSettingsState();
-            Utils::log("OBS Integration: Restoring old service.json...");
-            $helper->resetServiceState();
-        }
-        //Needs this to retain, I guess?
-        parseFinalViewers($live->getFinalViewerList($broadcastId)->getUsers());
-        $live->end($broadcastId);
-        Utils::log("Stream Ended!");
-        $archived = "yes";
-        if (!autoArchive) {
-            Utils::log("Would you like to keep the stream archived for 24 hours? Type \"yes\" to do so or anything else to not.");
-            print "> ";
-            $handle = fopen("php://stdin", "r");
-            $archived = trim(fgets($handle));
-            fclose($handle);
-        }
-        if ($archived == 'yes') {
-            Utils::log("Adding to Archive!");
-            $live->addToPostLive($broadcastId);
-            Utils::log("Livestream added to archive!");
-        }
-        Utils::log("Wrapping up and exiting...");
-        exit();
-    } elseif ($line == 'url') {
-        Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-    } elseif ($line == 'key') {
-        Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-        if (Utils::isWindows()) {
-            shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
-            Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
-        }
-    } elseif ($line == 'info') {
-        $info = $live->getInfo($broadcastId);
-        $status = $info->getStatus();
-        $muted = var_export($info->is_Messages(), true);
-        $count = $info->getViewerCount();
-        Utils::log("Info:\nStatus: $status\nMuted: $muted\nViewer Count: $count");
-    } elseif ($line == 'viewers') {
-        Utils::log("Viewers:");
-        $live->getInfo($broadcastId);
-        $vCount = 0;
-        foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-            Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
-            $vCount++;
-        }
-        if ($vCount > 0) {
-            Utils::log("Total Viewers: " . $vCount);
-        } else {
-            Utils::log("There are no live viewers.");
-        }
-    } elseif ($line == 'wave') {
-        Utils::log("Please enter the user id you would like to wave at.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $viewerId = trim(fgets($handle));
-        fclose($handle);
-        try {
-            $live->wave($broadcastId, $viewerId);
-            Utils::log("Waved at a user!");
-        } catch (Exception $waveError) {
-            Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
-            Utils::dump($waveError->getMessage());
-        }
-    } elseif ($line == 'comment') {
-        Utils::log("Please enter the text you wish to comment.");
-        print "> ";
-        $handle = fopen("php://stdin", "r");
-        $text = trim(fgets($handle));
-        fclose($handle);
-        if ($text !== "") {
-            $live->comment($broadcastId, $text);
-            Utils::log("Commented on stream!");
-        } else {
-            Utils::log("Comments may not be empty!");
-        }
-    } elseif ($line == 'help') {
-        Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
-    } else {
-        Utils::log("Invalid Command. Type \"help\" for help!");
+    $line = Utils::promptInput();
+    switch ($line) {
+
+        case 'ecomments':
+            {
+                $live->enableComments($broadcastId);
+                Utils::log("Enabled Comments!");
+                break;
+            }
+        case 'dcomments':
+            {
+                $live->disableComments($broadcastId);
+                Utils::log("Disabled Comments!");
+                break;
+            }
+        case 'stop':
+        case 'end':
+            {
+                if ($obsAuto) {
+                    Utils::log("OBS Integration: Killing OBS...");
+                    $helper->killOBS();
+                    Utils::log("OBS Integration: Restoring old basic.ini...");
+                    $helper->resetSettingsState();
+                    Utils::log("OBS Integration: Restoring old service.json...");
+                    $helper->resetServiceState();
+                }
+                //Needs this to retain, I guess?
+                parseFinalViewers($live->getFinalViewerList($broadcastId));
+                $live->end($broadcastId);
+                Utils::log("Stream Ended!");
+                $archived = "yes";
+                if (!autoArchive && !autoDiscard) {
+                    Utils::log("Would you like to archive this stream?");
+                    $archived = Utils::promptInput();
+                }
+                if (autoArchive || $archived == 'yes' && !autoDiscard) {
+                    Utils::log("Adding to Archive...");
+                    $live->addToPostLive($broadcastId);
+                    Utils::log("Livestream added to archive!");
+                }
+                Utils::log("Wrapping up and exiting...");
+                exit(1);
+                break;
+            }
+        case 'url':
+            {
+                Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+                break;
+            }
+        case 'key':
+            {
+                Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+                if (Utils::isWindows()) {
+                    shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                    Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
+                }
+                break;
+            }
+        case 'info':
+            {
+                $info = $live->getInfo($broadcastId);
+                $status = $info->getStatus();
+                $muted = var_export($info->is_Messages(), true);
+                $count = $info->getViewerCount();
+                Utils::log("Info:\nStatus: $status\nMuted: $muted\nViewer Count: $count");
+                break;
+            }
+        case 'viewers':
+            {
+                Utils::log("Viewers:");
+                $live->getInfo($broadcastId);
+                $vCount = 0;
+                foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
+                    Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                    $vCount++;
+                }
+                if ($vCount > 0) {
+                    Utils::log("Total Viewers: " . $vCount);
+                } else {
+                    Utils::log("There are no live viewers.");
+                }
+                break;
+            }
+        case 'wave':
+            {
+                Utils::log("Please enter the user id you would like to wave at.");
+                $viewerId = Utils::promptInput();
+                try {
+                    $live->wave($broadcastId, $viewerId);
+                    Utils::log("Waved at a user!");
+                } catch (Exception $waveError) {
+                    Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+                    Utils::dump($waveError->getMessage());
+                }
+                break;
+            }
+        case 'comment':
+            {
+                Utils::log("Please enter the text you wish to comment.");
+                $text = Utils::promptInput();
+                if ($text !== "") {
+                    $live->comment($broadcastId, $text);
+                    Utils::log("Commented on stream!");
+                } else {
+                    Utils::log("Comments may not be empty!");
+                }
+                break;
+            }
+        case 'help':
+            {
+                Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
+                break;
+            }
+        default:
+            {
+                Utils::log("Invalid Command. Type \"help\" for help!");
+                break;
+            }
     }
-    @fclose($handle);
     newCommand($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
 
@@ -799,7 +755,6 @@ function registerArgument(array $helpData, array $argv, string $name, string $de
         $fullTack = '--' . $fullTack;
     }
     define($name, in_array('-' . $tack, $argv) || in_array($fullTack, $argv));
-    /** @noinspection PhpComposerExtensionStubsInspection */
     array_push($helpData, json_encode([
         'name' => $name,
         'description' => $description,

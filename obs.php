@@ -1,7 +1,7 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
-require_once 'config.php';
-require_once 'utils.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/utils.php';
 
 class ObsHelper
 {
@@ -39,7 +39,10 @@ class ObsHelper
         }
 
         clearstatcache();
-        if (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
+        //Because never trust user input...
+        if (OBS_CUSTOM_PATH !== 'INSERT_PATH' && @file_exists((substr(str_replace('\\', '/', OBS_CUSTOM_PATH), -1) === '/' ? str_replace("\\", '/', OBS_CUSTOM_PATH) : str_replace("\\", '/', OBS_CUSTOM_PATH) . '/'))) {
+            $this->obs_path = (substr(str_replace('\\', '/', OBS_CUSTOM_PATH), -1) === '/' ? str_replace("\\", '/', OBS_CUSTOM_PATH) : str_replace("\\", '/', OBS_CUSTOM_PATH) . '/');
+        } elseif (@file_exists("C:/Program Files/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files/obs-studio/";
         } elseif (@file_exists("C:/Program Files (x86)/obs-studio/") && !$forceStreamlabs) {
             $this->obs_path = "C:/Program Files (x86)/obs-studio/";
@@ -61,12 +64,12 @@ class ObsHelper
             return;
         }
 
-        $profiles = $dirs = array_filter(glob(getenv("appdata") . "\obs-studio\basic\profiles\*"), 'is_dir');
+        $profiles = array_filter(glob(getenv("appdata") . "\obs-studio\basic\profiles\*"), 'is_dir');
         $profile = null;
         if (count($profiles) === 0) {
             $this->obs_path = null;
             return;
-        } else if (count($profiles) === 1) {
+        } elseif (count($profiles) === 1) {
             $profile = $profiles[0];
         } else {
             Utils::log("OBS Integration: Multi-Profile environment detected! Please select your current OBS profile.");
@@ -75,9 +78,8 @@ class ObsHelper
                 Utils::log("[$profileIndex] - " . str_replace(getenv("appdata") . "\obs-studio\basic\profiles\\", '', $curProfile));
                 $profileIndex++;
             }
-            print "OBS Integration: Type your Profile ID from the above selection...\n>";
-            $handle = fopen("php://stdin", "r");
-            $profileIndex = trim(fgets($handle));
+            Utils::log("OBS Integration: Type your Profile ID from the above selection...");
+            $profileIndex = Utils::promptInput();
             @$profile = $profiles[$profileIndex];
             if ($profile === null) {
                 Utils::log("OBS Integration: Invalid Profile Selection!");
@@ -195,11 +197,10 @@ class ObsHelper
             if (!$bitRateTriggered) {
                 $newLines = $newLines . "[SimpleOutput]\nVBitrate" . OBS_BITRATE . "\n";
             }
-        } else {
-            Utils::log("OBS Integration: Unable to modify settings!");
+            @file_put_contents($this->settings_path, $newLines);
+            return;
         }
-
-        @file_put_contents($this->settings_path, $newLines);
+        Utils::log("OBS Integration: Unable to modify settings!");
     }
 
     /**
@@ -224,9 +225,9 @@ class ObsHelper
     public function killOBS(): bool
     {
         if ($this->slobsPresent) {
-            return strpos(shell_exec("taskkill /IM \"crash-handler-process.exe\" /F && taskkill /IM \"crashpad_handler.exe\" /F && taskkill /IM \"Streamlabs OBS.exe\" /F && taskkill /IM obs64.exe /F"), "SUCCESS");
+            return strpos(shell_exec("taskkill /IM \"crash-handler-process.exe\" /F && taskkill /IM \"crashpad_handler.exe\" /F && taskkill /IM \"Streamlabs OBS.exe\" /F && taskkill /IM " . OBS_EXEC_NAME . " /F"), "SUCCESS");
         }
-        return strpos(shell_exec("taskkill /IM obs64.exe /F"), "SUCCESS");
+        return strpos(shell_exec("taskkill /IM " . OBS_EXEC_NAME . " /F"), "SUCCESS");
     }
 
     /**
@@ -239,7 +240,7 @@ class ObsHelper
             pclose(popen("cd \"$this->obs_path\" && start /B \"Streamlabs OBS.exe\"", "r"));
             return true;
         }
-        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B obs64.exe" . ($this->autoStream ? " --startstreaming" : "") . " --profile $this->profile_name", "r"));
+        pclose(popen("cd \"$this->obs_path" . "bin/64bit\" && start /B " . OBS_EXEC_NAME . ($this->autoStream ? " --startstreaming" : "") . " --profile $this->profile_name", "r"));
         return true;
     }
 
@@ -249,7 +250,7 @@ class ObsHelper
      */
     public function isObsRunning(): bool
     {
-        $res = shell_exec("tasklist /FI \"IMAGENAME eq obs64.exe\" 2>NUL | find /I /N \"obs64.exe\">NUL && if \"%ERRORLEVEL%\"==\"0\" echo running");
+        $res = shell_exec("tasklist /FI \"IMAGENAME eq " . OBS_EXEC_NAME . "\" 2>NUL | find /I /N \"" . OBS_EXEC_NAME . "\">NUL && if \"%ERRORLEVEL%\"==\"0\" echo running");
         if (strcmp($res, "") !== 0) {
             return true;
         }
