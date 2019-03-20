@@ -47,12 +47,13 @@ foreach ($argv as $curArg) {
     }
 }
 
-//Load Utils
+//Load Config & Utils
 require_once __DIR__ . '/utils.php';
+require_once __DIR__ . '/config.php';
 
-define("scriptVersion", "1.5");
+define("scriptVersion", "1.6");
 define("scriptVersionCode", "37");
-define("scriptFlavor", "stable");
+define("scriptFlavor", "custom");
 
 if (dumpFlavor) {
     Utils::log(scriptFlavor);
@@ -64,16 +65,27 @@ if (dump) {
     exit(1);
 }
 
+//Check for required files
+Utils::existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
+Utils::existsOrError(__DIR__ . '/obs.php', "OBS Integration");
+Utils::existsOrError(__DIR__ . '/config.php', "Username & Password Storage");
+
 Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
+    if (UPDATE_AUTO) {
+        Utils::log("Update: A new version of InstagramLive-PHP has been detected and will be installed momentarily...");
+        exec(PHP_BINARY . " update.php");
+        Utils::log("Update: Finished! Exiting the script, please re-run the script now.");
+        exit(1);
+    }
     Utils::log("\nUpdate: A new update is available, run the `update.php` script to fetch it!\n");
 }
 
 if (!Utils::isApiDevMaster()) {
-    Utils::log("Outdated Instagram-API version detected, attempting to fix this for you. This may take a while...");
+    Utils::log("Update: Outdated Instagram-API version detected, attempting to fix this for you. This may take a while...");
     exec(PHP_BINARY . " update.php");
-    Utils::log("Update Finished! Exiting the script, please re-run the script now.");
+    Utils::log("Update: Finished! Exiting the script, please re-run the script now.");
     exit(1);
 }
 
@@ -86,15 +98,9 @@ if (help) {
     exit(1);
 }
 
-//Check for required files
-Utils::existsOrError(__DIR__ . '/vendor/autoload.php', "Instagram API Files");
-Utils::existsOrError(__DIR__ . '/obs.php', "OBS Integration");
-Utils::existsOrError(__DIR__ . '/config.php', "Username & Password Storage");
-
 //Load Classes
 require_once __DIR__ . '/vendor/autoload.php'; //Composer
 require_once __DIR__ . '/obs.php'; //OBS Utils
-require_once __DIR__ . '/config.php';
 
 use InstagramAPI\Instagram;
 use InstagramAPI\Request\Live;

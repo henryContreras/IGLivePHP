@@ -7,6 +7,9 @@ define('IG_PASS', 'PASSWORD');
  * Settings below this line are optional!
  */
 
+//General Settings
+define("UPDATE_AUTO", false); //Change false to true if you want the script to automatically update itself without having to run the update.php script
+
 //OBS Settings
 define('OBS_BITRATE', '4000');
 
@@ -18,4 +21,4 @@ define('OBS_Y', '1280'); //You shouldn't touch this
 
 
 //Config Metadata
-define('configVersionCode', '4'); //You shouldn't touch this
+define('configVersionCode', '5'); //You shouldn't touch this
