@@ -108,9 +108,9 @@ use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin);
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin, $argv);
 
-function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
+function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $args)
 {
     $username = IG_USERNAME;
     $password = IG_PASS;
@@ -139,6 +139,10 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
         Utils::log("Logged In! Creating Livestream...");
         $stream = $ig->live->create();
         $broadcastId = $stream->getBroadcastId();
+
+        if (!ANALYTICS_OPT_OUT) {
+            Utils::analytics("live", scriptVersion, scriptFlavor, PHP_OS, count($args));
+        }
 
         // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
         $streamUploadUrl = (!useRmtps === true ? preg_replace(
@@ -225,7 +229,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin)
 
         if ((Utils::isWindows() || Utils::isMac() || bypassCheck) && !forceLegacy) {
             Utils::log("Command Line: Windows/macOS Detected! A new console will open for command input and this will become command/like output.");
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin);
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args);
         } else {
             Utils::log("Command Line: Linux Detected! The script has entered legacy mode. Please use Windows or macOS for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
@@ -285,7 +289,7 @@ function parseFinalViewers($finalResponse)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin, array $args)
 {
     if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
@@ -598,7 +602,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
-                main(false, $helper, $streamTotalSec, $autoPin);
+                main(false, $helper, $streamTotalSec, $autoPin, $args);
             }
             Utils::log("Stream Ended! Please close the console window!");
             @unlink(__DIR__ . '/request');

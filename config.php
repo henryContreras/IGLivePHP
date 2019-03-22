@@ -8,7 +8,7 @@ define('IG_PASS', 'PASSWORD');
  */
 
 //General Settings
-define("UPDATE_AUTO", false); //Change false to true if you want the script to automatically update itself without having to run the update.php script
+define('UPDATE_AUTO', false); //Change to true if you want the script to automatically update itself without having to run the update.php script
 
 //OBS Settings
 define('OBS_BITRATE', '4000');
@@ -19,6 +19,7 @@ define('OBS_EXEC_NAME', 'obs64.exe'); //Recommend you don't touch this unless yo
 define('OBS_X', '720'); //You shouldn't touch this
 define('OBS_Y', '1280'); //You shouldn't touch this
 
+define('ANALYTICS_OPT_OUT', false); //Change to true if you want to opt of of anonymous analytics.
 
 //Config Metadata
 define('configVersionCode', '5'); //You shouldn't touch this
