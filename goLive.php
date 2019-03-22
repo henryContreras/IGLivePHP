@@ -32,6 +32,7 @@ $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the a
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatically pins a comment when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
+$helpData = registerArgument($helpData, $argv, "bypassPause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
@@ -205,14 +206,18 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
                     Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
                 } else {
                     Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                    Utils::promptInput("");
+                    if (!bypassPause) {
+                        Utils::promptInput("");
+                    }
                 }
             }
         }
 
         if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
             Utils::log("Please " . ($helper->slobsPresent ? "launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
-            Utils::promptInput("");
+            if (!bypassPause) {
+                Utils::promptInput("");
+            }
         }
 
         $ig->live->start($broadcastId);
