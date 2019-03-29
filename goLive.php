@@ -309,6 +309,10 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         }
     }
     @cli_set_process_title("InstagramLive-PHP: Live Chat & Likes");
+    $broadcastStatus = 'Unknown';
+    $topLiveEligible = 0;
+    $viewerCount = 0;
+    $totalViewerCount = 0;
     $lastCommentTs = 0;
     $lastLikeTs = 0;
     $lastQuestion = -1;
@@ -431,11 +435,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                         }
                     case 'info':
                         {
-                            $info = $ig->live->getInfo($broadcastId);
-                            $status = $info->getStatus();
-                            $muted = var_export($info->getMuted(), true);
-                            $count = $info->getViewerCount();
-                            Utils::log("Info:\nStatus: $status \nMuted: $muted \nViewer Count: $count");
+                            Utils::log("Info:\nStatus: $broadcastStatus\nTop Live Eligible: " . ($topLiveEligible === 1 ? "true" : "false") . "\nViewer Count: $viewerCount\nTotal Unique Viewer Count: $totalViewerCount");
                             break;
                         }
                     case 'viewers':
@@ -538,8 +538,14 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
         }
 
+        //Send Heartbeat and Fetch Info
+        $heartbeatResponse = $ig->live->getHeartbeatAndViewerCount($broadcastId); //Maintain :clap: comments :clap: and :clap: likes :clap: after :clap: stream
+        $broadcastStatus = $heartbeatResponse->getBroadcastStatus();
+        $topLiveEligible = $heartbeatResponse->getIsTopLiveEligible();
+        $viewerCount = $heartbeatResponse->getViewerCount();
+        $totalViewerCount = $heartbeatResponse->getTotalUniqueViewerCount();
+
         //Process Likes
-        $ig->live->getHeartbeatAndViewerCount($broadcastId); //Maintain :clap: comments :clap: and :clap: likes :clap: after :clap: stream
         $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
         $lastLikeTs = $likeCountResponse->getLikeTs();
         foreach ($likeCountResponse->getLikers() as $user) {
