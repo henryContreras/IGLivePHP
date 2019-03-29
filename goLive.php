@@ -33,6 +33,7 @@ $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Automatic
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
 $helpData = registerArgument($helpData, $argv, "bypassPause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
+$helpData = registerArgument($helpData, $argv, "noBackup", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
@@ -105,6 +106,7 @@ require_once __DIR__ . '/obs.php'; //OBS Utils
 
 use InstagramAPI\Instagram;
 use InstagramAPI\Request\Live;
+use InstagramAPI\Response\FinalViewerListResponse;
 use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
 
@@ -137,36 +139,49 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
             Utils::dump();
             exit(1);
         }
-        Utils::log("Logged In! Creating Livestream...");
-        $stream = $ig->live->create();
-        $broadcastId = $stream->getBroadcastId();
+        Utils::log("Logged In!");
+        $obsAutomation = true;
+        if (!Utils::isRecovery()) {
+            Utils::log("Creating Livestream...");
+            $stream = $ig->live->create();
+            $broadcastId = $stream->getBroadcastId();
 
-        if (!ANALYTICS_OPT_OUT) {
-            Utils::analytics("live", scriptVersion, scriptFlavor, PHP_OS, count($args));
+            if (!ANALYTICS_OPT_OUT) {
+                Utils::analytics("live", scriptVersion, scriptFlavor, PHP_OS, count($args));
+            }
+
+            // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
+            $streamUploadUrl = (!useRmtps === true ? preg_replace(
+                '#^rtmps://([^/]+?):443/#ui',
+                'rtmp://\1:80/',
+                $stream->getUploadUrl()
+            ) : $stream->getUploadUrl());
+
+            //Grab the stream url as well as the stream key.
+            $split = preg_split("[" . $broadcastId . "]", $streamUploadUrl);
+
+            $streamUrl = trim($split[0]);
+            $streamKey = trim($broadcastId . $split[1]);
+        } else {
+            Utils::log("Recovery Detected, Restarting Stream...");
+            $recoveryData = Utils::getRecovery();
+            $broadcastId = $recoveryData['broadcastId'];
+            $streamUrl = $recoveryData['streamUrl'];
+            $streamKey = $recoveryData['streamKey'];
+            $obsAutomation = (bool)$recoveryData['obs'];
+            $helper = unserialize($recoveryData['obsObject']);
         }
 
-        // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
-        $streamUploadUrl = (!useRmtps === true ? preg_replace(
-            '#^rtmps://([^/]+?):443/#ui',
-            'rtmp://\1:80/',
-            $stream->getUploadUrl()
-        ) : $stream->getUploadUrl());
-
-        //Grab the stream url as well as the stream key.
-        $split = preg_split("[" . $broadcastId . "]", $streamUploadUrl);
-
-        $streamUrl = trim($split[0]);
-        $streamKey = trim($broadcastId . $split[1]);
-
-        $obsAutomation = true;
-        if ($helper->obs_path === null) {
-            Utils::log("OBS Integration: OBS was not detected, disabling!" . (!Utils::isWindows() ? " Please note macOS is not supported!" : " Please make a ticket on GitHub if you have OBS installed."));
-            $obsAutomation = false;
-        } else {
-            if (!obsAutomationAccept) {
-                Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.");
-                if (Utils::promptInput() !== "yes") {
-                    $obsAutomation = false;
+        if (!Utils::isRecovery()) {
+            if ($helper->obs_path === null) {
+                Utils::log("OBS Integration: OBS was not detected, disabling!" . (!Utils::isWindows() ? " Please note macOS is not supported!" : " Please make a ticket on GitHub if you have OBS installed."));
+                $obsAutomation = false;
+            } else {
+                if (!obsAutomationAccept) {
+                    Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.");
+                    if (Utils::promptInput() !== "yes") {
+                        $obsAutomation = false;
+                    }
                 }
             }
         }
@@ -175,52 +190,57 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
 
         Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
 
-        if (!$obsAutomation) {
-            if (Utils::isWindows()) {
-                shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
-                Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
-            }
-        } else {
-            if ($helper->isObsRunning()) {
-                Utils::log("OBS Integration: Killing OBS...");
-                $helper->killOBS();
-            }
-            if (!$helper->attempted_settings_save) {
-                Utils::log("OBS Integration: Backing-up your old OBS basic.ini...");
-                $helper->saveSettingsState();
-            }
-            Utils::log("OBS Integration: Loading basic.ini with optimal OBS settings...");
-            $helper->updateSettingsState();
-            if (!$helper->attempted_service_save) {
-                Utils::log("OBS Integration: Backing-up your old OBS service.json...");
-                $helper->saveServiceState();
-            }
-            Utils::log("OBS Integration: Populating service.json with new stream url & key.");
-            $helper->setServiceState($streamUrl, $streamKey);
-            if (!$helper->slobsPresent) {
-                Utils::log("OBS Integration: Re-launching OBS...");
-                $helper->spawnOBS();
-                Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
-                if ($helper->waitForOBS()) {
-                    sleep(1);
-                    Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
-                } else {
-                    Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                    if (!bypassPause) {
-                        Utils::promptInput("");
+        if (!Utils::isRecovery()) {
+            if (!$obsAutomation) {
+                if (Utils::isWindows()) {
+                    shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                    Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
+                }
+            } else {
+                if ($helper->isObsRunning()) {
+                    Utils::log("OBS Integration: Killing OBS...");
+                    $helper->killOBS();
+                }
+                if (!$helper->attempted_settings_save) {
+                    Utils::log("OBS Integration: Backing-up your old OBS basic.ini...");
+                    $helper->saveSettingsState();
+                }
+                Utils::log("OBS Integration: Loading basic.ini with optimal OBS settings...");
+                $helper->updateSettingsState();
+                if (!$helper->attempted_service_save) {
+                    Utils::log("OBS Integration: Backing-up your old OBS service.json...");
+                    $helper->saveServiceState();
+                }
+                Utils::log("OBS Integration: Populating service.json with new stream url & key.");
+                $helper->setServiceState($streamUrl, $streamKey);
+                if (!$helper->slobsPresent) {
+                    Utils::log("OBS Integration: Re-launching OBS...");
+                    $helper->spawnOBS();
+                    Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
+                    if ($helper->waitForOBS()) {
+                        sleep(1);
+                        Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
+                    } else {
+                        Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
+                        if (!bypassPause) {
+                            Utils::promptInput("");
+                        }
                     }
                 }
             }
         }
 
-        if (!$obsAutomation || obsNoStream || $helper->slobsPresent) {
+        if ((!$obsAutomation || obsNoStream || $helper->slobsPresent) && !Utils::isRecovery()) {
             Utils::log("Please " . ($helper->slobsPresent ? "launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
             if (!bypassPause) {
                 Utils::promptInput("");
             }
         }
 
-        $ig->live->start($broadcastId);
+        if (!Utils::isRecovery()) {
+            Utils::log("Starting Stream...");
+            $ig->live->start($broadcastId);
+        }
 
         if ($autoPin !== null) {
             $ig->live->pinComment($broadcastId, $ig->live->comment($broadcastId, $autoPin)->getComment()->getPk());
@@ -234,7 +254,18 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
 
         if ((Utils::isWindows() || Utils::isMac() || bypassCheck) && !forceLegacy) {
             Utils::log("Command Line: Windows/macOS Detected! A new console will open for command input and this will become command/like output.");
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args);
+            $startCommentTs = 0;
+            $startLikeTs = 0;
+            $startingQuestion = -1;
+            $startingTime = -1;
+            if (Utils::isRecovery()) {
+                $recoveryData = Utils::getRecovery();
+                $startCommentTs = $recoveryData['lastCommentTs'];
+                $startLikeTs = $recoveryData['lastLikeTs'];
+                $startingQuestion = $recoveryData['lastQuestion'];
+                $startingTime = $recoveryData['startTime'];
+            }
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args, $startCommentTs, $startLikeTs, $startingQuestion, $startingTime);
         } else {
             Utils::log("Command Line: Linux Detected! The script has entered legacy mode. Please use Windows or macOS for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
@@ -245,7 +276,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
         $ig->live->end($broadcastId);
         Utils::dump();
         exit(1);
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         echo 'Error While Creating Livestream: ' . $e->getMessage() . "\n";
         Utils::dump($e->getMessage());
         exit(1);
@@ -271,7 +302,7 @@ function addComment(Comment $comment, bool $system = false)
 }
 
 /**
- * @param \InstagramAPI\Response\FinalViewerListResponse $finalResponse
+ * @param FinalViewerListResponse $finalResponse
  */
 function parseFinalViewers($finalResponse)
 {
@@ -294,7 +325,7 @@ function parseFinalViewers($finalResponse)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin, array $args)
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin, array $args, int $startCommentTs = 0, int $startLikeTs = 0, int $startingQuestion = -1, int $startingTime = -1)
 {
     if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
@@ -313,14 +344,14 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     $topLiveEligible = 0;
     $viewerCount = 0;
     $totalViewerCount = 0;
-    $lastCommentTs = 0;
-    $lastLikeTs = 0;
-    $lastQuestion = -1;
+    $lastCommentTs = $startCommentTs;
+    $lastLikeTs = $startLikeTs;
+    $lastQuestion = $startingQuestion;
     $lastCommentPin = -1;
     $lastCommentPinHandle = '';
     $lastCommentPinText = '';
     $exit = false;
-    $startTime = time();
+    $startTime = ($startingTime === -1 ? time() : $startingTime);
 
     @unlink(__DIR__ . '/request');
 
@@ -371,6 +402,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                                 Utils::log("Livestream added to Archive!");
                             }
                             Utils::log("Ended stream!");
+                            Utils::deleteRecovery();
                             @unlink(__DIR__ . '/request');
                             sleep(2);
                             exit(1);
@@ -578,6 +610,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 Utils::log("Livestream added to archive!");
             }
             Utils::log("Stream Ended! Please close the console window!");
+            Utils::deleteRecovery();
             @unlink(__DIR__ . '/request');
             sleep(2);
             exit(1);
@@ -616,11 +649,15 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 main(false, $helper, $streamTotalSec, $autoPin, $args);
             }
             Utils::log("Stream Ended! Please close the console window!");
+            Utils::deleteRecovery();
             @unlink(__DIR__ . '/request');
             sleep(2);
             exit(1);
         }
 
+        if (!noBackup) {
+            Utils::saveRecovery($broadcastId, $streamUrl, $streamKey, $lastCommentTs, $lastLikeTs, $lastQuestion, $startTime, $obsAuto, serialize($helper));
+        }
         sleep(2);
     } while (!$exit);
 }
