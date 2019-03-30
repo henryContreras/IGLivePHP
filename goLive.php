@@ -577,6 +577,32 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         $viewerCount = $heartbeatResponse->getViewerCount();
         $totalViewerCount = $heartbeatResponse->getTotalUniqueViewerCount();
 
+        //Handle Livestream Takedowns
+        try {
+            /** @noinspection PhpUndefinedMethodInspection */
+            if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
+                /** @noinspection PhpUndefinedMethodInspection */
+                Utils::log("Policy: Instagram has sent a policy violation and you stream has been stopped! The follow reason was supplied: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+                /** @noinspection PhpUndefinedMethodInspection */
+                Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+                if ($obsAuto) {
+                    Utils::log("OBS Integration: Killing OBS...");
+                    $helper->killOBS();
+                    Utils::log("OBS Integration: Restoring old basic.ini...");
+                    $helper->resetSettingsState();
+                    Utils::log("OBS Integration: Restoring old service.json...");
+                    $helper->resetServiceState();
+                }
+                Utils::log("Wrapping up and exiting...");
+                parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
+                $ig->live->end($broadcastId);
+                Utils::log("Ended stream!");
+                Utils::deleteRecovery();
+                @unlink(__DIR__ . '/request');
+                sleep(2);
+                exit(1);
+            }
+        } catch (Exception $ignored) {}
         //Process Likes
         $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
         $lastLikeTs = $likeCountResponse->getLikeTs();
