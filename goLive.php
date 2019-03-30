@@ -115,8 +115,8 @@ main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $strea
 
 function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $args)
 {
-    $username = IG_USERNAME;
-    $password = IG_PASS;
+    $username = trim(IG_USERNAME);
+    $password = trim(IG_PASS);
     if (promptLogin) {
         Utils::log("Please enter your credentials...");
         $username = Utils::promptInput("Username:");
