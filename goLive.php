@@ -107,7 +107,6 @@ require_once __DIR__ . '/obs.php'; //OBS Utils
 use InstagramAPI\Instagram;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\FinalViewerListResponse;
-use InstagramAPI\Response\Model\User;
 use InstagramAPI\Response\Model\Comment;
 
 //Run the script and spawn a new console window if applicable.
@@ -283,9 +282,9 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
     }
 }
 
-function addLike(User $user)
+function addLike(string $username)
 {
-    $cmt = "@" . $user->getUsername() . " has liked the stream!";
+    $cmt = "$username has liked the stream!";
     Utils::log($cmt);
     if (logCommentOutput) {
         Utils::logOutput($cmt);
@@ -352,6 +351,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
     $lastCommentPinText = '';
     $exit = false;
     $startTime = ($startingTime === -1 ? time() : $startingTime);
+    $userCache = array();
 
     @unlink(__DIR__ . '/request');
 
@@ -566,8 +566,20 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         }
         if (!empty($systemComments)) {
             foreach ($systemComments as $systemComment) {
+                if (strpos($systemComment->getPk(), "joined_at") !== false) {
+                    if (!isset($userCache[$systemComment->getUser()->getPk()])) {
+                        $userCache[$systemComment->getUser()->getPk()] = $systemComment->getUser()->getUsername();
+                    }
+                }
                 addComment($systemComment, true);
             }
+        }
+
+        //Process Likes
+        $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
+        $lastLikeTs = $likeCountResponse->getLikeTs();
+        foreach ($likeCountResponse->getLikers() as $user) {
+            addLike((isset($userCache[$user->getUserId()]) ?  ("@" . $userCache[$user->getUserId()]) : "An Unknown User"));
         }
 
         //Send Heartbeat and Fetch Info
@@ -603,13 +615,6 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 exit(1);
             }
         } catch (Exception $ignored) {}
-        //Process Likes
-        $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
-        $lastLikeTs = $likeCountResponse->getLikeTs();
-        foreach ($likeCountResponse->getLikers() as $user) {
-            $user = $ig->people->getInfoById($user->getUserId())->getUser();
-            addLike($user);
-        }
 
         //Calculate Times for Limiter Argument
         if ($streamTotalSec > 0 && (time() - $startTime) >= $streamTotalSec) {
