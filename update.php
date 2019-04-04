@@ -2,7 +2,7 @@
 
 logTxt("Loading Updater...");
 if (file_exists('goLive.php')) {
-    $cachedFlavor = exec(PHP_BINARY . " goLive.php --dumpFlavor");
+    $cachedFlavor = exec("\"" . PHP_BINARY . "\" goLive.php --dumpFlavor");
 }
 
 if (@$cachedFlavor == 'custom') {
@@ -68,12 +68,12 @@ if (count($queue) != 0) {
 
 if ($composer) {
     logTxt("Detected composer update, re-installing");
-    exec((file_exists("composer.phar") ? (PHP_BINARY . " composer.phar") : "composer") . " update");
+    exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
 }
 
 if (!file_exists("vendor/") || $composer) {
     logTxt($composer ? "Detected composer update, re-installing..." : "No vendor folder detected, attempting to recover...");
-    exec((file_exists("composer.phar") ? (PHP_BINARY . " composer.phar") : "composer") . " update");
+    exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
     if (!file_exists("vendor/")) {
         logTxt("Composer install was unsuccessful! Please make sure composer is ACTUALLY INSTALLED!");
         exit();

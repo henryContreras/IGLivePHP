@@ -77,7 +77,7 @@ Utils::log("Loading InstagramLive-PHP v" . scriptVersion . "...");
 if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
     if (UPDATE_AUTO) {
         Utils::log("Update: A new version of InstagramLive-PHP has been detected and will be installed momentarily...");
-        exec(PHP_BINARY . " update.php");
+        exec("\"" . PHP_BINARY . "\" update.php");
         Utils::log("Update: Finished! Exiting the script, please re-run the script now.");
         exit(1);
     }
@@ -86,7 +86,7 @@ if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
 
 if (!Utils::isApiDevMaster()) {
     Utils::log("Update: Outdated Instagram-API version detected, attempting to fix this for you. This may take a while...");
-    exec(PHP_BINARY . " update.php");
+    exec("\"" . PHP_BINARY . "\" update.php");
     Utils::log("Update: Finished! Exiting the script, please re-run the script now.");
     exit(1);
 }
