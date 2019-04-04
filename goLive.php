@@ -579,7 +579,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
         $lastLikeTs = $likeCountResponse->getLikeTs();
         foreach ($likeCountResponse->getLikers() as $user) {
-            addLike((isset($userCache[$user->getUserId()]) ?  ("@" . $userCache[$user->getUserId()]) : "An Unknown User"));
+            addLike((isset($userCache[$user->getUserId()]) ? ("@" . $userCache[$user->getUserId()]) : "An Unknown User"));
         }
 
         //Send Heartbeat and Fetch Info
@@ -614,7 +614,8 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                 sleep(2);
                 exit(1);
             }
-        } catch (Exception $ignored) {}
+        } catch (Exception $ignored) {
+        }
 
         //Calculate Times for Limiter Argument
         if ($streamTotalSec > 0 && (time() - $startTime) >= $streamTotalSec) {
