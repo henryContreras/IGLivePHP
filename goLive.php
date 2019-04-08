@@ -142,7 +142,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
         $obsAutomation = true;
         if (!Utils::isRecovery()) {
             Utils::log("Creating Livestream...");
-            $stream = $ig->live->create();
+            $stream = $ig->live->create(OBS_X, OBS_Y);
             $broadcastId = $stream->getBroadcastId();
 
             if (!ANALYTICS_OPT_OUT) {
