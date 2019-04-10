@@ -87,7 +87,7 @@ if (Utils::checkForUpdate(scriptVersionCode, scriptFlavor)) {
         Utils::log("Update: Finished! Exiting the script, please re-run the script now.");
         exit(1);
     }
-    Utils::log("\nUpdate: A new update is available, run the `update.php` script to fetch it!\n");
+    Utils::log("\nUpdate: A new update is available, run the `update.php` script to fetch it!\nProtip: You can set 'UPDATE_AUTO' to true in the config.php to have updates automatically install!\n");
 }
 
 if (!Utils::isApiDevMaster()) {
@@ -129,7 +129,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
     }
 
     if ($username == "USERNAME" || $password == "PASSWORD") {
-        Utils::log("Default Username or Password have not been changed! Exiting...");
+        Utils::log("Default Username or Password have not been changed! Exiting...\nProtip: You can run the script like 'php goLive.php -p' to avoid using the config.php for credentials!");
         exit(1);
     }
 
@@ -191,7 +191,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
                 $obsAutomation = false;
             } else {
                 if (!obsAutomationAccept) {
-                    Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.");
+                    Utils::log("OBS Integration: Would you like the script to automatically start streaming to OBS? Type \"yes\" or press enter to ignore.\nProtip: You can run the script like 'php goLive.php --obs' to automatically accept this prompt or 'php goLive.php --no-obs' to automatically reject this.");
                     if (Utils::promptInput() !== "yes") {
                         $obsAutomation = false;
                     }
