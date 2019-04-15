@@ -34,14 +34,11 @@ $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integra
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
 $helpData = registerArgument($helpData, $argv, "bypassPause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
 $helpData = registerArgument($helpData, $argv, "noBackup", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
-$helpData = registerArgument($helpData, $argv, "promptTitle", "Prompts you to set a title for your stream.", "t", "title");
-$helpData = registerArgument($helpData, $argv, "setTitle", "Sets the stream title at starts rather than asking for a prompt. Note: Use underscores for spaces. (Example: --set-title=Hello_World).", "-set-title");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
 $streamTotalSec = 0;
 $autoPin = null;
-$streamTitle = '';
 
 foreach ($argv as $curArg) {
     if (strpos($curArg, '--stream-sec=') !== false) {
@@ -49,9 +46,6 @@ foreach ($argv as $curArg) {
     }
     if (strpos($curArg, '--auto-pin=') !== false) {
         $autoPin = str_replace('_', ' ', str_replace('--auto-pin=', '', $curArg));
-    }
-    if (strpos($curArg, '--set-title=') !== false) {
-        $streamTitle = str_replace('_', ' ', str_replace('--set-title=', '', $curArg));
     }
 }
 
@@ -116,9 +110,9 @@ use InstagramAPI\Response\FinalViewerListResponse;
 use InstagramAPI\Response\Model\Comment;
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin, $argv, $streamTitle);
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin, $argv);
 
-function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $args, string $streamTitle)
+function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $args)
 {
     $username = trim(IG_USERNAME);
     $password = trim(IG_PASS);
@@ -148,15 +142,8 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
         $obsAutomation = true;
         if (!Utils::isRecovery()) {
             Utils::log("Creating Livestream...");
-            if (promptTitle) {
-                Utils::log("Please enter a maximum of 30 character stream title.");
-                $streamTitle = Utils::promptInput();
-            }
-            if (mb_strlen($streamTitle, 'utf8') > 30) {
-                Utils::log("Stream Titles must be between 1 and 30 characters. Reverting to none...");
-                $streamTitle = '';
-            }
-            $stream = $ig->live->create(OBS_X, OBS_Y, $streamTitle);
+
+            $stream = $ig->live->create(OBS_X, OBS_Y);
             $broadcastId = $stream->getBroadcastId();
 
             if (!ANALYTICS_OPT_OUT) {
@@ -278,7 +265,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
                 $startingQuestion = $recoveryData['lastQuestion'];
                 $startingTime = $recoveryData['startTime'];
             }
-            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args, $startCommentTs, $startLikeTs, $startingQuestion, $startingTime, $streamTitle);
+            beginListener($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args, $startCommentTs, $startLikeTs, $startingQuestion, $startingTime);
         } else {
             Utils::log("Command Line: Linux Detected! The script has entered legacy mode. Please use Windows or macOS for all the latest features.");
             newCommand($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
@@ -338,7 +325,7 @@ function parseFinalViewers($finalResponse)
     }
 }
 
-function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin, array $args, int $startCommentTs = 0, int $startLikeTs = 0, int $startingQuestion = -1, int $startingTime = -1, string $streamTitle = '')
+function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $console, bool $obsAuto, ObsHelper $helper, int $streamTotalSec, $autoPin, array $args, int $startCommentTs = 0, int $startLikeTs = 0, int $startingQuestion = -1, int $startingTime = -1)
 {
     if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
@@ -692,7 +679,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
-                main(false, $helper, $streamTotalSec, $autoPin, $args, $streamTitle);
+                main(false, $helper, $streamTotalSec, $autoPin, $args);
             }
             Utils::log("Stream Ended! Please close the console window!");
             Utils::deleteRecovery();
