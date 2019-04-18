@@ -1,6 +1,6 @@
 {
   "version": "1.6",
-  "versionCode": "39",
+  "versionCode": "40",
   "files": [
     "goLive.php",
     "checkVod.php",
@@ -11,16 +11,16 @@
     "update.php"
   ],
   "config": {
-    "versionCode": "5",
-    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/config.php"
+    "versionCode": "6",
+    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/config.php"
   },
   "links": {
-    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/goLive.php",
-    "checkVod.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/checkVod.php",
-    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/commandLine.php",
-    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/utils.php",
-    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/obs.php",
-    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/composer.json",
-    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-1/update.php"
+    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/goLive.php",
+    "checkVod.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/checkVod.php",
+    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/commandLine.php",
+    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/utils.php",
+    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/obs.php",
+    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/composer.json",
+    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6-BETA-2/update.php"
   }
 }
