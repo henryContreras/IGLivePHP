@@ -25,6 +25,7 @@ $helpData = registerArgument($helpData, $argv, "autoDiscard", "Automatically dis
 $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
 $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
+$helpData = registerArgument($helpData, $argv, "obsNoIni", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
 $helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
 $helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
@@ -110,7 +111,7 @@ use InstagramAPI\Response\FinalViewerListResponse;
 use InstagramAPI\Response\Model\Comment;
 
 //Run the script and spawn a new console window if applicable.
-main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs), $streamTotalSec, $autoPin, $argv);
+main(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs, (!obsNoIni && OBS_MODIFY_SETTINGS)), $streamTotalSec, $autoPin, $argv);
 
 function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $args)
 {

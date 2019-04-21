@@ -15,6 +15,7 @@ class ObsHelper
     public $attempted_settings_save;
     public $autoStream;
     public $forceSlobs;
+    public $iniModification;
     public $slobsPresent;
 
     /**
@@ -22,8 +23,9 @@ class ObsHelper
      * @param bool $autoStream Automatically starts streaming in OBS if true.
      * @param bool $disable Disables path check if true.
      * @param bool $forceStreamlabs Forces streamlabs obs over normal obs.
+     * @param bool $iniModification Modifies the ini files for resolution/canvas.
      */
-    public function __construct(bool $autoStream, bool $disable, bool $forceStreamlabs)
+    public function __construct(bool $autoStream, bool $disable, bool $forceStreamlabs, bool $iniModification)
     {
         $this->service_state = null;
         $this->settings_state = null;
@@ -31,6 +33,7 @@ class ObsHelper
         $this->attempted_settings_save = false;
         $this->autoStream = $autoStream;
         $this->forceSlobs = $forceStreamlabs;
+        $this->iniModification = $iniModification;
         $this->slobsPresent = false;
 
         if (!Utils::isWindows() || $disable) {
@@ -169,6 +172,9 @@ class ObsHelper
      */
     public function updateSettingsState()
     {
+        if (!$this->iniModification) {
+            return;
+        }
         $handle = fopen($this->settings_path, "r");
         $newLines = '';
         $bitRateTriggered = false;

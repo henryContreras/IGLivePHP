@@ -12,6 +12,7 @@ define('UPDATE_AUTO', false); //Change to true if you want the script to automat
 define('STREAM_RECOVERY', true); //Change to false if you want to disable automatic stream recovery (May improve performance when disabled)
 
 //OBS Settings
+define('OBS_MODIFY_SETTINGS', true); //Change this to false if you want the script to only modify the stream url and key and not resolution
 define('OBS_BITRATE', '4000');
 
 define('OBS_CUSTOM_PATH', 'INSERT_PATH'); //**OPTIONAL** Specify a custom path for the script to search for an obs executable
@@ -23,4 +24,4 @@ define('OBS_Y', '1794'); //You shouldn't touch this
 define('ANALYTICS_OPT_OUT', false); //Change to true if you want to opt of of anonymous analytics.
 
 //Config Metadata
-define('configVersionCode', '7'); //You shouldn't touch this
+define('configVersionCode', '8'); //You shouldn't touch this
