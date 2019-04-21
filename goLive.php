@@ -599,31 +599,25 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         $totalViewerCount = $heartbeatResponse->getTotalUniqueViewerCount();
 
         //Handle Livestream Takedowns
-        try {
-            /** @noinspection PhpUndefinedMethodInspection */
-            if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
-                /** @noinspection PhpUndefinedMethodInspection */
-                Utils::log("Policy: Instagram has sent a policy violation and you stream has been stopped! The follow reason was supplied: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-                /** @noinspection PhpUndefinedMethodInspection */
-                Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-                if ($obsAuto) {
-                    Utils::log("OBS Integration: Killing OBS...");
-                    $helper->killOBS();
-                    Utils::log("OBS Integration: Restoring old basic.ini...");
-                    $helper->resetSettingsState();
-                    Utils::log("OBS Integration: Restoring old service.json...");
-                    $helper->resetServiceState();
-                }
-                Utils::log("Wrapping up and exiting...");
-                parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
-                $ig->live->end($broadcastId);
-                Utils::log("Ended stream!");
-                Utils::deleteRecovery();
-                @unlink(__DIR__ . '/request');
-                sleep(2);
-                exit(1);
+        if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
+            Utils::log("Policy: Instagram has sent a policy violation and you stream has been stopped! The follow reason was supplied: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+            Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+            if ($obsAuto) {
+                Utils::log("OBS Integration: Killing OBS...");
+                $helper->killOBS();
+                Utils::log("OBS Integration: Restoring old basic.ini...");
+                $helper->resetSettingsState();
+                Utils::log("OBS Integration: Restoring old service.json...");
+                $helper->resetServiceState();
             }
-        } catch (Exception $ignored) {
+            Utils::log("Wrapping up and exiting...");
+            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
+            $ig->live->end($broadcastId);
+            Utils::log("Ended stream!");
+            Utils::deleteRecovery();
+            @unlink(__DIR__ . '/request');
+            sleep(2);
+            exit(1);
         }
 
         //Calculate Times for Limiter Argument
