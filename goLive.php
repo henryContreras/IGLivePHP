@@ -688,7 +688,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             exit(1);
         }
 
-        if (!noBackup) {
+        if (!noBackup && STREAM_RECOVERY) {
             Utils::saveRecovery($broadcastId, $streamUrl, $streamKey, $lastCommentTs, $lastLikeTs, $lastQuestion, $startTime, $obsAuto, serialize($helper));
         }
         sleep(2);

@@ -190,6 +190,9 @@ class Utils
      */
     public static function isRecovery(): bool
     {
+        if (!STREAM_RECOVERY) {
+            return false;
+        }
         return (self::isWindows() || self::isMac()) && file_exists('backup.json');
     }
 
