@@ -490,7 +490,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
                     case 'questions':
                         {
                             Utils::log("Questions:");
-                            foreach ($ig->live->getQuestions()->getQuestions() as $cquestion) {
+                            foreach ($ig->live->getLiveBroadcastQuestions($broadcastId)->getQuestions() as $cquestion) {
                                 Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
                             }
                             break;
