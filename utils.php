@@ -155,12 +155,12 @@ class Utils
      * @param string $streamKey Stream Key of the stream.
      * @param int $lastCommentTs Recent Max ID of comments
      * @param int $lastLikeTs Recent Max ID of likes.
-     * @param int $lastQuestion Last Question displayed.
+     * @param string|int $lastQuestion Last Question displayed.
      * @param int $startTime Epoch Time at which the stream started.
      * @param bool $obs True if the user is using obs.
      * @param string $obsObject
      */
-    public static function saveRecovery(string $broadcastId, string $streamUrl, string $streamKey, int $lastCommentTs, int $lastLikeTs, int $lastQuestion, int $startTime, bool $obs, string $obsObject)
+    public static function saveRecovery(string $broadcastId, string $streamUrl, string $streamKey, int $lastCommentTs, int $lastLikeTs, $lastQuestion, int $startTime, bool $obs, string $obsObject)
     {
         file_put_contents('backup.json', json_encode(array(
             'broadcastId' => $broadcastId,
