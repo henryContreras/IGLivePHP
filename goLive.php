@@ -55,8 +55,8 @@ require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/config.php';
 
 define("scriptVersion", "1.6");
-define("scriptVersionCode", "41");
-define("scriptFlavor", "beta");
+define("scriptVersionCode", "42");
+define("scriptFlavor", "stable");
 
 if (dumpFlavor) {
     Utils::log(scriptFlavor);
