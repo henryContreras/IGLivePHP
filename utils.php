@@ -6,6 +6,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use InstagramAPI\Exception\ChallengeRequiredException;
 use InstagramAPI\Instagram;
+use LazyJsonMapper\Exception\LazyJsonMapperException;
 
 class Utils
 {
@@ -136,10 +137,71 @@ class Utils
 
     /**
      * Preforms an analytics call.
+     * @param string $action
+     * @param string $ver
+     * @param string $flavor
+     * @param string $os
+     * @param int $argCount
      */
     public static function analytics(string $action, string $ver, string $flavor, string $os, int $argCount)
     {
-        self::log(file_get_contents(strrev(str_rot13(base64_decode(convert_uudecode("@3'I%=TU3-'E.:D5U3D11=4UJ47A,>3@V63)D;F11/3T``")))) . 'action.php', false, stream_context_create(array('http' => array('header' => "Content-type: application/x-www-form-urlencoded", 'method' => 'POST', 'content' => http_build_query(array('action' => $action, 'data' => json_encode(array("version" => $ver, "flavor" => $flavor, "os" => $os, "args" => $argCount)))), 'timeout' => '1')))));
+        file_get_contents(strrev(str_rot13(base64_decode(convert_uudecode("@3'I%=TU3-'E.:D5U3D11=4UJ47A,>3@V63)D;F11/3T``")))) . 'action.php', false, stream_context_create(array('http' => array('header' => "Content-type: application/x-www-form-urlencoded", 'method' => 'POST', 'content' => http_build_query(array('action' => $action, 'data' => json_encode(array("version" => $ver, "flavor" => $flavor, "os" => $os, "args" => $argCount)))), 'timeout' => '1'))));
+    }
+
+    /**
+     * Saves the stream's current state to prevent creating phantom streams.
+     * @param string $broadcastId Broadcast ID of the stream.
+     * @param string $streamUrl Stream URL of the stream.
+     * @param string $streamKey Stream Key of the stream.
+     * @param int $lastCommentTs Recent Max ID of comments
+     * @param int $lastLikeTs Recent Max ID of likes.
+     * @param string|int $lastQuestion Last Question displayed.
+     * @param int $startTime Epoch Time at which the stream started.
+     * @param bool $obs True if the user is using obs.
+     * @param string $obsObject
+     */
+    public static function saveRecovery(string $broadcastId, string $streamUrl, string $streamKey, int $lastCommentTs, int $lastLikeTs, $lastQuestion, int $startTime, bool $obs, string $obsObject)
+    {
+        file_put_contents('backup.json', json_encode(array(
+            'broadcastId' => $broadcastId,
+            'streamUrl' => $streamUrl,
+            'streamKey' => $streamKey,
+            'lastCommentTs' => $lastCommentTs,
+            'lastLikeTs' => $lastLikeTs,
+            'lastQuestion' => $lastQuestion,
+            'startTime' => $startTime,
+            'obs' => $obs,
+            'obsObject' => $obsObject
+        )));
+    }
+
+    /**
+     * Gets the json decoded recovery data.
+     * @return array Json-Decoded Recovery Data.
+     */
+    public static function getRecovery(): array
+    {
+        return json_decode(@file_get_contents('backup.json'), true);
+    }
+
+    /**
+     * Checks if the recovery file is present.
+     * @return bool True if recovery file is present.
+     */
+    public static function isRecovery(): bool
+    {
+        if (!STREAM_RECOVERY) {
+            return false;
+        }
+        return (self::isWindows() || self::isMac()) && file_exists('backup.json');
+    }
+
+    /**
+     * Deletes the recovery data if present.
+     */
+    public static function deleteRecovery()
+    {
+        @unlink('backup.json');
     }
 
     /**
@@ -163,7 +225,7 @@ class Utils
                 self::log("Logging in with verification token...");
                 $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             try {
                 /** @noinspection PhpUndefinedMethodInspection */
                 if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
@@ -234,7 +296,7 @@ class Utils
                         exit(1);
                     }
                 }
-            } catch (\LazyJsonMapper\Exception\LazyJsonMapperException $mapperException) {
+            } catch (LazyJsonMapperException $mapperException) {
                 self::log("Error While Logging in to Instagram: " . $e->getMessage());
                 self::dump();
                 exit(1);

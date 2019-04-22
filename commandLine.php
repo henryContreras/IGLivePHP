@@ -71,6 +71,13 @@ function newCommand()
                 sendRequest('wave', [$viewerId]);
                 break;
             }
+        case 'block':
+            {
+                Utils::log("Please enter the user id you would like to block.");
+                $userId = Utils::promptInput();
+                sendRequest('block', [$userId]);
+                break;
+            }
         case 'help':
             {
                 Utils::log("Commands:\n
@@ -89,6 +96,7 @@ function newCommand()
         showquestion - Displays question on livestream\n
         hidequestion - Hides displayed question if one is displayed\n
         wave - Waves at a user who has joined the stream\n
+        block - Blocks a user from your account\n
         stop - Stops the Live Stream");
                 break;
             }
