@@ -54,8 +54,8 @@ foreach ($argv as $curArg) {
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/config.php';
 
-define("scriptVersion", "1.6");
-define("scriptVersionCode", "42");
+define("scriptVersion", "1.6.1");
+define("scriptVersionCode", "43");
 define("scriptFlavor", "stable");
 
 if (dumpFlavor) {
@@ -682,6 +682,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
+                Utils::deleteRecovery();
                 main(false, $helper, $streamTotalSec, $autoPin, $args);
             }
             Utils::log("Stream Ended! Please close the console window!");

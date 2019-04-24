@@ -1,6 +1,58 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
 logTxt("Loading Updater...");
+
+$requestedTag = null;
+
+foreach ($argv as $curArg) {
+    if (strpos($curArg, '--tag=') !== false) {
+        $requestedTag = str_replace('--tag=', '', $curArg);
+    }
+}
+
+if ($requestedTag !== null) {
+    logTxt("Looking up requested tag: $requestedTag");
+    $betaResponse = json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/beta.json"), true);
+    $tagUrl = sprintf($betaResponse['tagValidationUrl'], $requestedTag);
+    @file_get_contents($tagUrl);
+    if (is404($http_response_header)) {
+        logTxt("Requested tag does not exist! Exiting updater...");
+        exit();
+    }
+    logTxt("Tag Fetched! Processing File Queue...");
+    $composer = false;
+    foreach ($betaResponse['files'] as $file) {
+        $downloaded = @file_get_contents($tagUrl . $file);
+        if (is404($http_response_header)) {
+            @unlink($file);
+            logTxt("$file - Deleted");
+            continue;
+        }
+        if ($file == 'composer.json') {
+            $localMd5 = md5(preg_replace("/\r|\n/", "", trim(file_get_contents($file))));
+            $remoteMd5 = md5(preg_replace("/\r|\n/", "", trim($downloaded)));
+            if ($localMd5 === $remoteMd5) {
+                continue;
+            }
+            $composer = true;
+        }
+        file_put_contents($file, $downloaded);
+        logTxt("$file - Modified");
+    }
+
+    if (!file_exists("vendor/") || $composer) {
+        logTxt($composer ? "Detected composer update, re-installing..." : "No vendor folder detected, attempting to recover...");
+        exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
+        if (!file_exists("vendor/")) {
+            logTxt("Composer install was unsuccessful! Please make sure composer is ACTUALLY INSTALLED!");
+            exit();
+        }
+    }
+
+    logTxt("Successfully fetched & updated to tag $requestedTag");
+    exit();
+}
+
 if (file_exists('goLive.php')) {
     $cachedFlavor = exec("\"" . PHP_BINARY . "\" goLive.php --dumpFlavor");
 }
@@ -66,11 +118,6 @@ if (count($queue) != 0) {
     logTxt("Files Updated!");
 }
 
-if ($composer) {
-    logTxt("Detected composer update, re-installing");
-    exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
-}
-
 if (!file_exists("vendor/") || $composer) {
     logTxt($composer ? "Detected composer update, re-installing..." : "No vendor folder detected, attempting to recover...");
     exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
@@ -81,6 +128,14 @@ if (!file_exists("vendor/") || $composer) {
 }
 
 logTxt("InstagramLive-PHP is now up-to-date!");
+
+function is404($http_response_header): bool
+{
+    if (!is_array($http_response_header) || count(explode(' ', $http_response_header[0])) <= 1 || intval(explode(' ', $http_response_header[0])[1]) === 404) {
+        return true;
+    }
+    return false;
+}
 
 function logTxt($message)
 {
