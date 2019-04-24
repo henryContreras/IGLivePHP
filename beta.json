@@ -22,5 +22,6 @@
     "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6/obs.php",
     "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6/composer.json",
     "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.6/update.php"
-  }
+  },
+  "tagValidationUrl": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@%s/"
 }
