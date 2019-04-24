@@ -190,6 +190,7 @@ class Utils
      */
     public static function isRecovery(): bool
     {
+        clearstatcache();
         if (!STREAM_RECOVERY) {
             return false;
         }
