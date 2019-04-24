@@ -682,6 +682,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
             }
             if ($restart == 'yes') {
                 Utils::log("Restarting Livestream!");
+                Utils::deleteRecovery();
                 main(false, $helper, $streamTotalSec, $autoPin, $args);
             }
             Utils::log("Stream Ended! Please close the console window!");
