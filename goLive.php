@@ -54,8 +54,8 @@ foreach ($argv as $curArg) {
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/config.php';
 
-define("scriptVersion", "1.6.3");
-define("scriptVersionCode", "45");
+define("scriptVersion", "1.6.4");
+define("scriptVersionCode", "46");
 define("scriptFlavor", "stable");
 
 if (dumpFlavor) {
@@ -141,7 +141,13 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
         }
         Utils::log("Logged In!");
 
-        if (Utils::isRecovery() && $ig->live->getInfo(Utils::getRecovery()['broadcastId'])->getBroadcastStatus() === 'stopped') {
+        try {
+            if (Utils::isRecovery() && $ig->live->getInfo(Utils::getRecovery()['broadcastId'])->getBroadcastStatus() === 'stopped') {
+                Utils::log("Detected recovery was outdated, deleting recovery...");
+                Utils::deleteRecovery();
+                Utils::log("Deleted Outdated Recovery!");
+            }
+        } catch (Exception $e) {
             Utils::log("Detected recovery was outdated, deleting recovery...");
             Utils::deleteRecovery();
             Utils::log("Deleted Outdated Recovery!");
