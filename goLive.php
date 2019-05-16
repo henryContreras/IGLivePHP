@@ -28,7 +28,6 @@ $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automati
 $helpData = registerArgument($helpData, $argv, "obsNoIni", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
 $helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
-$helpData = registerArgument($helpData, $argv, "useRmtps", "Uses rmtps rather than rmtp for clients that refuse rmtp.", "-use-rmtps");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Sets a comment to automatically pin when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
 $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
@@ -165,11 +164,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
             }
 
             // Switch from RTMPS to RTMP upload URL, since RTMPS doesn't work well.
-            $streamUploadUrl = (!useRmtps === true ? preg_replace(
-                '#^rtmps://([^/]+?):443/#ui',
-                'rtmp://\1:80/',
-                $stream->getUploadUrl()
-            ) : $stream->getUploadUrl());
+            $streamUploadUrl = $stream->getUploadUrl();
 
             //Grab the stream url as well as the stream key.
             $split = preg_split("[" . $broadcastId . "]", $streamUploadUrl);
@@ -200,9 +195,10 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
             }
         }
 
+        Utils::log("**Please** update your current Stream URL if you have one in your current streaming program. A recent update has made the old url not work so please use the one below!");
         Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-
         Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================\n");
+        Utils::log("**Please** update your current Stream URL if you have one in your current streaming program. A recent update has made the old url not work so please use the one below!");
 
         if (!Utils::isRecovery()) {
             if (!$obsAutomation) {
