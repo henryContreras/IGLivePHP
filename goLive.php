@@ -608,6 +608,8 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         $viewerCount = $heartbeatResponse->getViewerCount();
         $totalViewerCount = $heartbeatResponse->getTotalUniqueViewerCount();
 
+        $ig->live->getJoinRequestCounts($broadcastId);
+
         //Handle Livestream Takedowns
         if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
             Utils::log("Policy: Instagram has sent a policy violation and you stream has been stopped! The follow reason was supplied: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
