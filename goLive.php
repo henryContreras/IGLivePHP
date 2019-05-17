@@ -34,6 +34,7 @@ $helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integra
 $helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
 $helpData = registerArgument($helpData, $argv, "bypassPause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
 $helpData = registerArgument($helpData, $argv, "noBackup", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
+$helpData = registerArgument($helpData, $argv, "fightCopyright", "Acknowledges Instagram copyright takedowns but let's you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
 $helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
 
@@ -612,24 +613,27 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
 
         //Handle Livestream Takedowns
         if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
-            Utils::log("Policy: Instagram has sent a policy violation and you stream has been stopped! The follow reason was supplied: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-            Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-            if ($obsAuto) {
-                Utils::log("OBS Integration: Killing OBS...");
-                $helper->killOBS();
-                Utils::log("OBS Integration: Restoring old basic.ini...");
-                $helper->resetSettingsState();
-                Utils::log("OBS Integration: Restoring old service.json...");
-                $helper->resetServiceState();
+            Utils::log("Policy: Instagram has sent a policy violation" . (fightCopyright ? "." : " and you stream has been stopped!") . " The following policy was broken: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+            if (fightCopyright) {
+                Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+                if ($obsAuto) {
+                    Utils::log("OBS Integration: Killing OBS...");
+                    $helper->killOBS();
+                    Utils::log("OBS Integration: Restoring old basic.ini...");
+                    $helper->resetSettingsState();
+                    Utils::log("OBS Integration: Restoring old service.json...");
+                    $helper->resetServiceState();
+                }
+                Utils::log("Wrapping up and exiting...");
+                parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
+                $ig->live->end($broadcastId, true);
+                Utils::log("Ended stream!");
+                Utils::deleteRecovery();
+                @unlink(__DIR__ . '/request');
+                sleep(2);
+                exit(1);
             }
-            Utils::log("Wrapping up and exiting...");
-            parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
-            $ig->live->end($broadcastId);
-            Utils::log("Ended stream!");
-            Utils::deleteRecovery();
-            @unlink(__DIR__ . '/request');
-            sleep(2);
-            exit(1);
+            $ig->live->resumeBroadcastAfterContentMatch($broadcastId);
         }
 
         //Calculate Times for Limiter Argument
