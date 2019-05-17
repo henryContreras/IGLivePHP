@@ -15,28 +15,35 @@ if (!defined('PHP_MAJOR_VERSION') || PHP_MAJOR_VERSION < 7) {
 
 //Argument Processing
 $helpData = [];
-$helpData = registerArgument($helpData, $argv, "help", "Displays this message.", "h", "help");
-$helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypasses the operating system check. Please do not use this if you don't use this if you don't know what you're doing!", "b", "bypass-check");
-$helpData = registerArgument($helpData, $argv, "forceLegacy", "Forces legacy mode for Windows & Mac users.", "l", "force-legacy");
-$helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
-$helpData = registerArgument($helpData, $argv, "infiniteStream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
-$helpData = registerArgument($helpData, $argv, "autoArchive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
-$helpData = registerArgument($helpData, $argv, "autoDiscard", "Automatically discards a live stream after it ends.", "d", "auto-discard");
-$helpData = registerArgument($helpData, $argv, "logCommentOutput", "Logs comment and like output into a text file.", "o", "comment-output");
-$helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Automatically accepts the OBS prompt.", "-obs");
-$helpData = registerArgument($helpData, $argv, "obsNoStream", "Disables automatic stream start in OBS.", "-obs-no-stream");
-$helpData = registerArgument($helpData, $argv, "obsNoIni", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
-$helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
-$helpData = registerArgument($helpData, $argv, "startDisableComments", "Automatically disables commands when the stream starts.", "-dcomments");
-$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
-$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Sets a comment to automatically pin when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
-$helpData = registerArgument($helpData, $argv, "forceSlobs", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
-$helpData = registerArgument($helpData, $argv, "promptLogin", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
-$helpData = registerArgument($helpData, $argv, "bypassPause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
-$helpData = registerArgument($helpData, $argv, "noBackup", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
-$helpData = registerArgument($helpData, $argv, "fightCopyright", "Acknowledges Instagram copyright takedowns but let's you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
-$helpData = registerArgument($helpData, $argv, "dump", "Forces an error dump for debug purposes.", "-dump");
-$helpData = registerArgument($helpData, $argv, "dumpFlavor", "Dumps current release flavor.", "-dumpFlavor");
+$helpData = registerArgument($helpData, $argv, "help", "Help", "Displays this message.", "h", "help");
+$helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypass OS Check", "Bypasses the operating system check. Please do not use this if don't know what you're doing!", "b", "bypass-check");
+$helpData = registerArgument($helpData, $argv, "forceLegacy", "Force Legacy Mode", "Forces legacy mode for Windows & Mac users.", "l", "force-legacy");
+$helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypass Cutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
+$helpData = registerArgument($helpData, $argv, "infiniteStream", "Infinite Stream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
+$helpData = registerArgument($helpData, $argv, "autoArchive", "Auto Archive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
+$helpData = registerArgument($helpData, $argv, "autoDiscard", "Auto Discard", "Automatically discards a live stream after it ends.", "d", "auto-discard");
+$helpData = registerArgument($helpData, $argv, "logCommentOutput", "Log Comment Output", "Logs comment and like output into a text file.", "o", "comment-output");
+$helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Accept OBS Automation Prompt", "Automatically accepts the OBS prompt.", "-obs");
+$helpData = registerArgument($helpData, $argv, "obsNoStream", "Disable OBS Auto-Launch", "Disables automatic stream start in OBS.", "-obs-no-stream");
+$helpData = registerArgument($helpData, $argv, "obsNoIni", "Disable OBS Auto-Settings", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
+$helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disable OBS Automation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
+$helpData = registerArgument($helpData, $argv, "startDisableComments", "Disable Comments", "Automatically disables commands when the stream starts.", "-dcomments");
+$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Limit Stream Time", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
+$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Auto Pin Comment", "Sets a comment to automatically pin when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
+$helpData = registerArgument($helpData, $argv, "forceSlobs", "Force StreamLabs-OBS", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
+$helpData = registerArgument($helpData, $argv, "promptLogin", "Prompt Username & Password", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
+$helpData = registerArgument($helpData, $argv, "bypassPause", "Bypass Pause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
+$helpData = registerArgument($helpData, $argv, "noBackup", "Disable Stream Recovery", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
+$helpData = registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyright Takedowns", "Acknowledges Instagram copyright takedowns but lets you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
+$helpData = registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
+$helpData = registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
+$helpData = registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
+$helpData = registerArgument($helpData, $argv, "dumpCli", "", "Dumps current command-line arguments into json.", "-dumpCli");
+
+if (dumpCli) {
+    print json_encode($helpData);
+    exit(0);
+}
 
 $streamTotalSec = 0;
 $autoPin = null;
@@ -57,6 +64,11 @@ require_once __DIR__ . '/config.php';
 define("scriptVersion", "1.7");
 define("scriptVersionCode", "47");
 define("scriptFlavor", "stable");
+
+if (dumpVersion) {
+    Utils::log(scriptVersion);
+    exit(1);
+}
 
 if (dumpFlavor) {
     Utils::log(scriptFlavor);
@@ -854,12 +866,13 @@ function newCommand(Live $live, $broadcastId, $streamUrl, $streamKey, bool $obsA
  * @param array $helpData The array which holds the command data for the help menu.
  * @param array $argv The array of arguments passed to the script.
  * @param string $name The name to be used in the global variable.
+ * @param string $humanName The name to be used in the docs.
  * @param string $description The description of the argument to be used in the help menu.
  * @param string $tack The mini-tack argument name.
  * @param string|null $fullTack The full-tack argument name.
  * @return array The array of help data with the new argument.
  */
-function registerArgument(array $helpData, array $argv, string $name, string $description, string $tack, string $fullTack = null): array
+function registerArgument(array $helpData, array $argv, string $name, string $humanName, string $description, string $tack, string $fullTack = null): array
 {
     if ($fullTack !== null) {
         $fullTack = '--' . $fullTack;
@@ -867,6 +880,7 @@ function registerArgument(array $helpData, array $argv, string $name, string $de
     define($name, in_array('-' . $tack, $argv) || in_array($fullTack, $argv));
     array_push($helpData, json_encode([
         'name' => $name,
+        'humanName' => $humanName,
         'description' => $description,
         'tacks' => [
             'mini' => '-' . $tack,
