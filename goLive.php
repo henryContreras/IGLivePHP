@@ -54,8 +54,8 @@ foreach ($argv as $curArg) {
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/config.php';
 
-define("scriptVersion", "1.6.4");
-define("scriptVersionCode", "46");
+define("scriptVersion", "1.7");
+define("scriptVersionCode", "47");
 define("scriptFlavor", "stable");
 
 if (dumpFlavor) {
