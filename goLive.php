@@ -35,6 +35,7 @@ $helpData = registerArgument($helpData, $argv, "promptLogin", "Prompt Username &
 $helpData = registerArgument($helpData, $argv, "bypassPause", "Bypass Pause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
 $helpData = registerArgument($helpData, $argv, "noBackup", "Disable Stream Recovery", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
 $helpData = registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyright Takedowns", "Acknowledges Instagram copyright takedowns but lets you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
+$helpData = registerArgument($helpData, $argv, "experimentalQuestion", "Enable Stream Questions", "Experimental: Attempts to allow viewers to ask questions while streaming.", "q", "stream-ama");
 $helpData = registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
@@ -120,6 +121,7 @@ require_once __DIR__ . '/obs.php'; //OBS Utils
 use InstagramAPI\Instagram;
 use InstagramAPI\Request\Live;
 use InstagramAPI\Response\FinalViewerListResponse;
+use InstagramAPI\Response\GenericResponse;
 use InstagramAPI\Response\Model\Comment;
 
 //Run the script and spawn a new console window if applicable.
@@ -263,6 +265,19 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
         if (!Utils::isRecovery()) {
             Utils::log("Starting Stream...");
             $ig->live->start($broadcastId);
+            if (experimentalQuestion && !$ig->isExperimentEnabled('ig_android_live_qa_broadcaster_v1_universe', 'is_enabled')) {
+                try {
+                    $ig->request("live/{$broadcastId}/question_status/")
+                        ->setSignedPost(false)
+                        ->addPost('_csrftoken', $ig->client->getToken())
+                        ->addPost('_uuid', $ig->uuid)
+                        ->addPost('allow_question_submission', true)
+                        ->getResponse(new GenericResponse());
+                    Utils::log("Successfully enabled experimental viewer AMA!");
+                } catch (Exception $e) {
+                    Utils::log("Unable to enable experimental viewer AMA!");
+                }
+            }
         }
 
         if ($autoPin !== null) {
