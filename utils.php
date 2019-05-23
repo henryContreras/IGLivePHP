@@ -30,7 +30,22 @@ class Utils
      */
     public static function isApiDevMaster(): bool
     {
-        return self::startsWith(@json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php'], 'dev-master');
+        clearstatcache();
+        if (!file_exists('composer.lock')) {
+            return false;
+        }
+
+        $pass = false;
+        foreach (@json_decode(file_get_contents('composer.lock'), true)['packages'] as $package) {
+            if ($package['name'] === 'mgp25/instagram-php' &&
+                $package['version'] === 'dev-master' &&
+                $package['source']['reference'] === @explode('#', @json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php'])[1]) {
+                $pass = true;
+                break;
+            }
+        }
+
+        return $pass;
     }
 
     /**
