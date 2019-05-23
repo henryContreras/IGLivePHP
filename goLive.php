@@ -36,6 +36,7 @@ $helpData = registerArgument($helpData, $argv, "bypassPause", "Bypass Pause", "D
 $helpData = registerArgument($helpData, $argv, "noBackup", "Disable Stream Recovery", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
 $helpData = registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyright Takedowns", "Acknowledges Instagram copyright takedowns but lets you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
 $helpData = registerArgument($helpData, $argv, "experimentalQuestion", "Enable Stream Questions", "Experimental: Attempts to allow viewers to ask questions while streaming.", "q", "stream-ama");
+$helpData = registerArgument($helpData, $argv, "debugMode", "Enable Debug Mode", "Displays all requests being sent to Instagram.", "-debug");
 $helpData = registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
@@ -144,7 +145,7 @@ function main($console, ObsHelper $helper, $streamTotalSec, $autoPin, array $arg
 
 //Login to Instagram
     Utils::log("Logging into Instagram! Please wait as this can take up-to two minutes...");
-    $ig = Utils::loginFlow($username, $password);
+    $ig = Utils::loginFlow($username, $password, debugMode);
 
 //Block Responsible for Creating the Livestream.
     try {
