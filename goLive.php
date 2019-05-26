@@ -63,8 +63,8 @@ foreach ($argv as $curArg) {
 require_once __DIR__ . '/utils.php';
 require_once __DIR__ . '/config.php';
 
-define("scriptVersion", "1.7.1");
-define("scriptVersionCode", "49");
+define("scriptVersion", "1.7.2");
+define("scriptVersionCode", "50");
 define("scriptFlavor", "stable");
 
 if (dumpVersion) {
@@ -642,7 +642,7 @@ function beginListener(Instagram $ig, $broadcastId, $streamUrl, $streamKey, $con
         //Handle Livestream Takedowns
         if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
             Utils::log("Policy: Instagram has sent a policy violation" . (fightCopyright ? "." : " and you stream has been stopped!") . " The following policy was broken: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-            if (fightCopyright) {
+            if (!fightCopyright) {
                 Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
                 if ($obsAuto) {
                     Utils::log("OBS Integration: Killing OBS...");
