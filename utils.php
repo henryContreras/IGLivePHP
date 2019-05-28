@@ -244,7 +244,7 @@ class Utils
         } catch (Exception $e) {
             try {
                 /** @noinspection PhpUndefinedMethodInspection */
-                if ($e instanceof ChallengeRequiredException && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
+                if ($e instanceof ChallengeRequiredException || $e->getResponse()->getErrorType() === 'challenge_required') {
                     $response = $e->getResponse();
 
                     self::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
@@ -255,7 +255,7 @@ class Utils
                         self::dump();
                         exit(1);
                     }
-                    self::log("Preparing to verify account...");
+                    self::log("Suspicious Login: Preparing to verify account...");
                     sleep(3);
 
                     self::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
@@ -265,7 +265,7 @@ class Utils
                     } elseif ($choice === "email") {
                         $verification_method = 1;
                     } else {
-                        self::log("Aborting!");
+                        self::log("Suspicious Login: Aborting!");
                         exit(1);
                     }
 
@@ -274,53 +274,43 @@ class Utils
                     $customResponse = $ig->request($checkApiPath)
                         ->setNeedsAuth(false)
                         ->addPost('choice', $verification_method)
-                        ->addPost('_uuid', $ig->uuid)
                         ->addPost('guid', $ig->uuid)
                         ->addPost('device_id', $ig->device_id)
-                        ->addPost('_uid', $ig->account_id)
                         ->addPost('_csrftoken', $ig->client->getToken())
                         ->getDecodedResponse();
 
                     try {
-                        if ($customResponse['status'] === 'ok' && isset($customResponse['action'])) {
-                            if ($customResponse['action'] === 'close') {
-                                self::log("Suspicious Login: Account challenge successful, please re-run the script!");
-                                exit(1);
-                            }
-                        }
-
-                        self::log("Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
-                        $cCode = self::promptInput();
-                        $ig->changeUser($username, $password);
-                        $customResponse = $ig->request($checkApiPath)
-                            ->setNeedsAuth(false)
-                            ->addPost('security_code', $cCode)
-                            ->addPost('_uuid', $ig->uuid)
-                            ->addPost('guid', $ig->uuid)
-                            ->addPost('device_id', $ig->device_id)
-                            ->addPost('_uid', $ig->account_id)
-                            ->addPost('_csrftoken', $ig->client->getToken())
-                            ->getDecodedResponse();
-
-                        if (@$customResponse['status'] === 'ok' && @$customResponse['logged_in_user']['pk'] !== null) {
-                            self::log("Suspicious Login: Challenge Probably Solved!");
+                        if ($customResponse['status'] === 'ok' && isset($customResponse['action']) && $customResponse['action'] === 'close') {
+                            self::log("Suspicious Login: Account challenge unsuccessful!");
                             exit(1);
                         }
+
+                        self::log("Suspicious Login: Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
+                        $cCode = self::promptInput();
+                        $ig->changeUser($username, $password);
+                        $ig->request($checkApiPath)
+                            ->setNeedsAuth(false)
+                            ->addPost('security_code', $cCode)
+                            ->addPost('guid', $ig->uuid)
+                            ->addPost('device_id', $ig->device_id)
+                            ->addPost('_csrftoken', $ig->client->getToken())
+                            ->getDecodedResponse();
+                        self::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
                     } catch (Exception $ex) {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
                         self::dump($ex->getMessage());
                         exit(1);
                     }
+                } else {
+                    self::log("Error while logging into Instagram: " . $e->getMessage());
+                    self::dump();
+                    exit(1);
                 }
             } catch (LazyJsonMapperException $mapperException) {
-                self::log("Error While Logging in to Instagram: " . $e->getMessage());
+                self::log("Error while decoding challenge response: " . $e->getMessage());
                 self::dump();
                 exit(1);
             }
-
-            self::log("Error While Logging in to Instagram: " . $e->getMessage());
-            self::dump();
-            exit(1);
         }
         return $ig;
     }
