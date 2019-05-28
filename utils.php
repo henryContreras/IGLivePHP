@@ -37,9 +37,9 @@ class Utils
 
         $pass = false;
         foreach (@json_decode(file_get_contents('composer.lock'), true)['packages'] as $package) {
-            if ($package['name'] === 'mgp25/instagram-php' &&
-                $package['version'] === 'dev-master' &&
-                $package['source']['reference'] === @explode('#', @json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php'])[1]) {
+            if (@$package['name'] === 'mgp25/instagram-php' &&
+                @$package['version'] === 'dev-master' &&
+                @$package['source']['reference'] === @explode('#', @json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php'])[1]) {
                 $pass = true;
                 break;
             }
