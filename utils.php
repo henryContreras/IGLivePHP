@@ -19,6 +19,7 @@ class Utils
     public static function checkForUpdate(string $current, string $flavor): bool
     {
         if ($flavor == "custom") {
+            self::log("Update: You're running an in-dev build; Please note update checks will not work!");
             return false;
         }
         return (int)json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/$flavor.json"), true)['versionCode'] > (int)$current;
@@ -288,13 +289,19 @@ class Utils
                         self::log("Suspicious Login: Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
                         $cCode = self::promptInput();
                         $ig->changeUser($username, $password);
-                        $ig->request($checkApiPath)
+                        $response = $ig->request($checkApiPath)
                             ->setNeedsAuth(false)
                             ->addPost('security_code', $cCode)
                             ->addPost('guid', $ig->uuid)
                             ->addPost('device_id', $ig->device_id)
                             ->addPost('_csrftoken', $ig->client->getToken())
                             ->getDecodedResponse();
+                        if (!isset($response['user_id']) || $response['user_id'] === "") {
+                            self::log("Suspicious Login: Checkpoint likely failed, re-run script.");
+                            exit(1);
+                        }
+                        $ig->updateLoginState($response['user_id']);
+                        $ig->sendLoginFlow();
                         self::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
                     } catch (Exception $ex) {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
@@ -334,5 +341,18 @@ class ExtendedInstagram extends Instagram
     public function changeUser($username, $password)
     {
         $this->_setUser($username, $password);
+    }
+
+    public function updateLoginState($userId)
+    {
+        $this->isMaybeLoggedIn = true;
+        $this->account_id = $userId;
+        $this->settings->set('account_id', $this->account_id);
+        $this->settings->set('last_login', time());
+    }
+
+    public function sendLoginFlow()
+    {
+        $this->_sendLoginFlow(true);
     }
 }
