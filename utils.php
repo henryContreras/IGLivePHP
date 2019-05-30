@@ -245,7 +245,7 @@ class Utils
         } catch (Exception $e) {
             try {
                 /** @noinspection PhpUndefinedMethodInspection */
-                if ($e instanceof ChallengeRequiredException || $e->getResponse()->getErrorType() === 'challenge_required') {
+                if ($e instanceof ChallengeRequiredException || $e->getResponse()->getErrorType() === 'checkpoint_challenge_required') {
                     $response = $e->getResponse();
 
                     self::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
