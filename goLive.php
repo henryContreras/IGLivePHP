@@ -393,7 +393,7 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
         }
 
         //Stream Pause
-        if ((!$obsAutomation || obsNoStream || $helper->slobsPresent || bypassPause) && !Utils::isRecovery()) {
+        if ((!$obsAutomation || obsNoStream || $helper->slobsPresent) && !Utils::isRecovery() && !bypassPause) {
             Utils::log("Please " . ($helper->slobsPresent ? "launch Streamlabs OBS and " : " ") . "start streaming to the url and key above! Once you are live, please press enter!");
             Utils::promptInput("");
         }
