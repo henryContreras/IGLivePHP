@@ -10,7 +10,7 @@ if (php_sapi_name() !== "cli") {
 
 //Script version constants
 define("scriptVersion", "1.8");
-define("scriptVersionCode", "51");
+define("scriptVersionCode", "52");
 define("scriptFlavor", "beta");
 
 //Command Line Argument Registration
