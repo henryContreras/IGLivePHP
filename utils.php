@@ -67,14 +67,14 @@ class Utils
     {
         clearstatcache();
         self::log("===========BEGIN DUMP===========");
-        self::log("InstagramLive-PHP Version: " . scriptVersion);
-        self::log("InstagramLive-PHP Flavor: " . scriptFlavor);
+        self::log("InstagramLive-PHP Version: " . (defined('scriptVersion') ? scriptVersion : 'Unknown'));
+        self::log("InstagramLive-PHP Flavor: " . (defined('scriptFlavor') ? scriptFlavor : 'Unknown'));
         self::log("Instagram-API Version: " . @json_decode(file_get_contents('composer.json'), true)['require']['mgp25/instagram-php']);
         self::log("Operating System: " . PHP_OS);
         self::log("PHP Version: " . PHP_VERSION);
         self::log("PHP Runtime: " . php_sapi_name());
         self::log("PHP Binary: " . PHP_BINARY);
-        self::log("Bypassing OS-Check: " . (bypassCheck == true ? "true" : "false"));
+        self::log("Bypassing OS-Check: " . (defined('bypassCheck') ? (bypassCheck == true ? "true" : "false") : 'Unknown'));
         self::log("Composer Lock: " . (file_exists("composer.lock") == true ? "true" : "false"));
         self::log("Vendor Folder: " . (file_exists("vendor/") == true ? "true" : "false"));
         if ($exception !== null) {
@@ -300,7 +300,7 @@ class Utils
                             self::log("Suspicious Login: Checkpoint likely failed, re-run script.");
                             exit(1);
                         }
-                        $ig->updateLoginState((string) $response['logged_in_user']['pk']);
+                        $ig->updateLoginState((string)$response['logged_in_user']['pk']);
                         $ig->sendLoginFlow();
                         self::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
                     } catch (Exception $ex) {
