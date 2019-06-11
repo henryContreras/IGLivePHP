@@ -296,11 +296,11 @@ class Utils
                             ->addPost('device_id', $ig->device_id)
                             ->addPost('_csrftoken', $ig->client->getToken())
                             ->getDecodedResponse();
-                        if (!isset($response['user_id']) || $response['user_id'] === "") {
+                        if (!isset($response['logged_in_user']) || !isset($response['logged_in_user']['pk'])) {
                             self::log("Suspicious Login: Checkpoint likely failed, re-run script.");
                             exit(1);
                         }
-                        $ig->updateLoginState($response['user_id']);
+                        $ig->updateLoginState((string) $response['logged_in_user']['pk']);
                         $ig->sendLoginFlow();
                         self::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
                     } catch (Exception $ex) {
