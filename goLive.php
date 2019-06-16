@@ -589,11 +589,12 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
         //Handle Livestream Takedowns
         if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
             Utils::log("Policy: Instagram has sent a policy violation" . ((fightCopyright && !$attemptedFight) ? "." : " and you stream has been stopped!") . " The following policy was broken: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-            if (!fightCopyright || $attemptedFight) {
+            if ($attemptedFight || !fightCopyright) {
                 Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
                 endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper);
             }
             $ig->live->resumeBroadcastAfterContentMatch($broadcastId);
+            $attemptedFight = true;
         }
 
         //Calculate Times for Limiter Argument
