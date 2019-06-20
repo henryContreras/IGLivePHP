@@ -55,19 +55,19 @@ require_once __DIR__ . '/config.php';
 //Dump script semantic version
 if (dumpVersion) {
     Utils::log(scriptVersion);
-    exit(1);
+    exit(0);
 }
 
 //Dump script flavor (update channel)
 if (dumpFlavor) {
     Utils::log(scriptFlavor);
-    exit(1);
+    exit(0);
 }
 
 //Dump system info
 if (dump) {
     Utils::dump();
-    exit(1);
+    exit(0);
 }
 
 //Ensure sub-modules exist
