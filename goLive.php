@@ -292,12 +292,12 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
         if (Utils::isRecovery() && $ig->live->getInfo(Utils::getRecovery()['broadcastId'])->getBroadcastStatus() === 'stopped') {
             Utils::log("Recovery: Detected recovery was outdated, deleting...");
             Utils::deleteRecovery();
-            Utils::log("Deleted Outdated Recovery!");
+            Utils::log("Recovery: Deleted Outdated Recovery!");
         }
     } catch (Exception $e) {
         Utils::log("Recovery: Detected recovery was outdated, deleting...");
         Utils::deleteRecovery();
-        Utils::log("Deleted Outdated Recovery!");
+        Utils::log("Recovery: Deleted Outdated Recovery!");
     }
 
     try {
@@ -535,7 +535,14 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
         }
 
         //Process Comments
-        $commentsResponse = $ig->live->getComments($broadcastId, $lastCommentTs); //Request comments since the last time we checked
+        try {
+            $commentsResponse = $ig->live->getComments($broadcastId, $lastCommentTs); //Request comments since the last time we checked
+        } catch (Exception $e) {
+            Utils::log("Recovery: Detected outdated recovery, deleting...");
+            Utils::deleteRecovery();
+            Utils::log("Recovery: Deleted outdated recovery, please re-run the script!");
+            exit(0);
+        }
         $systemComments = $commentsResponse->getSystemComments(); //Metric data about comments and likes
         $comments = $commentsResponse->getComments(); //Get the actual comments from the request we made
         if (!empty($systemComments)) {
