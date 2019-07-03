@@ -10,7 +10,7 @@ if (php_sapi_name() !== "cli") {
 
 //Script version constants
 define("scriptVersion", "1.8");
-define("scriptVersionCode", "54");
+define("scriptVersionCode", "55");
 define("scriptFlavor", "beta");
 
 //Command Line Argument Registration
@@ -267,6 +267,13 @@ preparationFlow(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlo
  */
 function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec = 0, $autoPin = null)
 {
+    //Ensure that static files are here in webMode
+    if (webMode && !file_exists('static/')) {
+        Utils::log("Web Server: Static files for the web server are missing, attempting to fetch them");
+        exec("\"" . PHP_BINARY . "\" update.php");
+        Utils::log("Web Server: Static files *probably* fetched, please re-run this script.");
+    }
+
     $username = trim(IG_USERNAME);
     $password = trim(IG_PASS);
     if (promptLogin) {
