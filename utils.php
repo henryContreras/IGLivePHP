@@ -236,11 +236,20 @@ class Utils
             $loginResponse = $ig->login($username, $password);
 
             if ($loginResponse !== null && $loginResponse->isTwoFactorRequired()) {
-                self::log("Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
+                self::log("Login Flow: Two-Factor Authentication Required! Please provide your verification code from your texts/other means.");
                 $twoFactorIdentifier = $loginResponse->getTwoFactorInfo()->getTwoFactorIdentifier();
+                $verificationMethod = '1';
+                if ($loginResponse->getTwoFactorInfo()->getTotpTwoFactorOn() === true) {
+                    $verificationMethod = '3';
+                }
+                self::log("Login Flow: We've detected that you're using " . ($verificationMethod === '3' ? 'authenticator app' : 'text message') . " verification. If you are actually using " . ($verificationMethod === '3' ? 'text message' : 'authenticator app') . " verification, please type 'yes', otherwise press enter.");
+                $choice = self::promptInput();
+                if ($choice === "yes") {
+                    $verificationMethod = ($verificationMethod === '3' ? '1' : '3');
+                }
                 $verificationCode = self::promptInput("Type your verification code>");
-                self::log("Logging in with verification token...");
-                $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode);
+                self::log("Login Flow: Logging in with verification token...");
+                $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode, $verificationMethod);
             }
         } catch (Exception $e) {
             try {
