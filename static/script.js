@@ -78,6 +78,9 @@ $(document).ready(function () {
     $('#hidequestion').on('click', function () {
         sendRequest('hidequestion', '[]');
     });
+    $('#info').on('click', function () {
+        sendRequest('info', '[]')
+    });
     blackOverlay.fadeIn();
     $('#modal-waiting').fadeIn();
 });

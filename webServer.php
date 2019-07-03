@@ -128,17 +128,18 @@ if ($requestUri === '/static/script.js') {
         <div id="commands" class="bg-white br-25 mb-50 p-50">
             <h2 class="dark-blue mb-20">Commands</h2>
             <div id="command-buttons">
-                <button id="ecomments" class="btn btn-red br-25 mr-10 mb-20">Enable comments</button>
-                <button id="dcomments" class="btn btn-red br-25 mr-10 mb-20">Disable comments</button>
-                <button id="stop-streaming" class="btn btn-red br-25 mr-10 mb-20">Stop streaming</button>
-                <button id="comment" class="btn btn-red br-25 mr-10 mb-20">Comment</button>
-                <button id="url" class="btn btn-red br-25 mr-10 mb-20">Stream URL</button>
-                <button id="key" class="btn btn-red br-25 mr-10 mb-20">Stream Key</button>
-                <button id="viewers" class="btn btn-blue br-25 mr-10 mb-20">Viewers</button>
-                <button id="questions" class="btn btn-green br-25 mr-10 mb-20">Questions</button>
+                <button id="comment" class="btn btn-green br-25 mr-10 mb-20">Comment</button>
+                <button id="dcomments" class="btn btn-green br-25 mr-10 mb-20">Disable comments</button>
+                <button id="ecomments" class="btn btn-green br-25 mr-10 mb-20">Enable comments</button>
                 <button id="show-question" class="btn btn-green br-25 mr-10 mb-20">Show question</button>
                 <button id="hidequestion" class="btn btn-green br-25 mr-10 mb-20">Hide question</button>
-                <button id="block" class="btn btn-green br-25 mr-10 mb-20">Block</button>
+                <button id="block" class="btn btn-red br-25 mr-10 mb-20">Block</button>
+                <button id="stop-streaming" class="btn btn-red br-25 mr-10 mb-20">Stop streaming</button>
+                <button id="info" class="btn btn-blue br-25 mr-10 mb-20">Info</button>
+                <button id="questions" class="btn btn-blue br-25 mr-10 mb-20">Questions</button>
+                <button id="viewers" class="btn btn-blue br-25 mr-10 mb-20">Viewers</button>
+                <button id="url" class="btn btn-blue br-25 mr-10 mb-20">Stream URL</button>
+                <button id="key" class="btn btn-blue br-25 mr-10 mb-20">Stream Key</button>
             </div>
             <textarea id="command-response" class="bg-grey br-25 b-none w-100 p-20 o-none dark-blue"
                       placeholder="Response" rows="10" disabled></textarea>
@@ -158,7 +159,7 @@ if ($requestUri === '/static/script.js') {
         </div>
     </main>
     <footer class="text-center">
-        <p>&copy; 2019 JRoy &amp; Eenjesta - <span id="about" class="red">About</span></p>
+        <p>&copy; 2019<?php echo((date("Y") !== "2019" ? (" - " . date("Y")) : "")); ?> JRoy &amp; Eenjesta - <span id="about" class="red">About</span></p>
     </footer>
     <div class="display-data">
 
