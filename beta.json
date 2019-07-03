@@ -1,6 +1,6 @@
 {
   "version": "1.8",
-  "versionCode": "54",
+  "versionCode": "55",
   "files": [
     "goLive.php",
     "checkVod.php",
@@ -19,20 +19,20 @@
   ],
   "config": {
     "versionCode": "9",
-    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/config.php"
+    "url": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/config.php"
   },
   "links": {
-    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/goLive.php",
-    "checkVod.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/checkVod.php",
-    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/commandLine.php",
-    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/utils.php",
-    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/obs.php",
-    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/composer.json",
-    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/update.php",
-    "webServer.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/webServer.php",
-    "static/jquery.min.js": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/static/jquery.min.js",
-    "static/script.js": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/static/script.js",
-    "static/style.css": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-4/static/style.css"
+    "goLive.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/goLive.php",
+    "checkVod.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/checkVod.php",
+    "commandLine.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/commandLine.php",
+    "utils.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/utils.php",
+    "obs.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/obs.php",
+    "composer.json": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/composer.json",
+    "update.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/update.php",
+    "webServer.php": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/webServer.php",
+    "static/jquery.min.js": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/static/jquery.min.js",
+    "static/script.js": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/static/script.js",
+    "static/style.css": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@1.8-BETA-6/static/style.css"
   },
   "tagValidationUrl": "https://cdn.jsdelivr.net/gh/JRoy/InstagramLive-PHP@%s/"
 }
