@@ -5,7 +5,21 @@ $requestUri = $_SERVER['REQUEST_URI'];
 if ($requestUri === '/tick') {
     header('Content-Type: application/json', true);
     http_response_code(200);
-    die('{"uuid": "b3d2c0eb-4be8-411c-82b9-16f4bb25ca45", "username": "Username", "consoleOutput": ["New Line", "New Line"], "comments": [{"commentId":"1234", "userid": "123224", "username": "tttt", "text": "test"}, {"commentId":"123224", "userid": "1234", "username": "tttt", "text": "test"}], "likes": ["new line", "new line"], "copyright": false }');
+    die(@file_get_contents(__DIR__ . '/webLink.json'));
+}
+
+if ($requestUri === '/request') {
+    /** @noinspection PhpComposerExtensionStubsInspection */
+    file_put_contents(__DIR__ . '/request', json_encode([
+        'cmd' => $_POST['cmd'],
+        'values' => $_POST['values'],
+    ]));
+    if ('cmd' === 'end') {
+        exit(0);
+    }
+    header('Content-Type: application/json', true);
+    http_response_code(200);
+    die('{"status": "ok"}');
 }
 
 if ($requestUri === '/static/style.css') {
@@ -38,6 +52,8 @@ if ($requestUri === '/static/script.js') {
         <h2 class="dark-blue">Waiting for livestream...</h2>
     </div>
     <p class="mb-20">InstagramLive-PHP Console is waiting for your stream to start...</p>
+    <p class="mb-20">Please make sure you started this console with your goLive.php script and that the goLive.php
+        script is running in --web mode</p>
 </div>
 <div id="modal-about" class="modal">
     <div class="modal-header mb-20">
@@ -46,7 +62,8 @@ if ($requestUri === '/static/script.js') {
     </div>
     <p class="mb-20">This web console for InstagramLive-PHP provides a web-facing control panel for those who do not
         prefer dealing with the command line.</p>
-    <p class="mb-20">This panel is open source, licenced under the Apache 2.0 License, and made possible with the following contributors and open-source software(s):</p>
+    <p class="mb-20">This panel is open source, licenced under the Apache 2.0 License, and made possible with the
+        following contributors and open-source software(s):</p>
     <ul class="br-20 b-none w-100 p-20 o-none">
         <li><a target="_blank" href="https://github.com/JRoy">JRoy</a> - Backend</li>
         <li><a target="_blank" href="https://www.instagram.com/teenproblems.ig">Eenjesta</a> - Frontend/Design</li>
@@ -62,8 +79,8 @@ if ($requestUri === '/static/script.js') {
     <p class="mb-20">Would you like to archive this stream? Stream archives last up to twenty-four hours after the end.
         You can delete the archive later if you change your mind.</p>
     <div class="btn-group bottom">
-        <button class="btn btn-red br-25 float-left w-50">Archive Stream</button>
-        <button class="btn btn-grey br-25 float-right w-50">Discard Stream</button>
+        <button id="archive" class="btn btn-red br-25 float-left w-50">Archive Stream</button>
+        <button id="discard" class="btn btn-grey br-25 float-right w-50">Discard Stream</button>
     </div>
 </div>
 <div id="modal-comment" class="modal">
@@ -73,8 +90,8 @@ if ($requestUri === '/static/script.js') {
     </div>
     <p class="mb-20">Please enter a comment to leave of the stream...</p>
     <div class="btn-group bottom">
-        <input type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter comment..."/>
-        <button class="btn btn-red br-25 w-100">Comment</button>
+        <input id="comment-text" type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter comment..."/>
+        <button id="comment-button" class="btn btn-red br-25 w-100">Comment</button>
     </div>
 </div>
 <div id="modal-question" class="modal">
@@ -85,8 +102,8 @@ if ($requestUri === '/static/script.js') {
     <p class="mb-20">Please enter the question id to show on the stream... This will show as a card with the question
         and user who asked the question on the bottom of the stream.</p>
     <div class="btn-group bottom">
-        <input type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter question id..."/>
-        <button class="btn btn-red br-25 w-100">Show Question</button>
+        <input id="question-text" type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter question id..."/>
+        <button id="question-button" class="btn btn-red br-25 w-100">Show Question</button>
     </div>
 </div>
 <div id="modal-block" class="modal">
@@ -97,8 +114,8 @@ if ($requestUri === '/static/script.js') {
     <p class="mb-20">Please enter the user id to block... Please note that this blocks the user from your entire
         account; Just like a profile block in the app.</p>
     <div class="btn-group bottom">
-        <input type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter user id..."/>
-        <button class="btn btn-red br-25 w-100">Block User</button>
+        <input id="block-text" type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter user id..."/>
+        <button id="block-button" class="btn btn-red br-25 w-100">Block User</button>
     </div>
 </div>
 <div id="black-overlay"></div>

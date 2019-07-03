@@ -36,6 +36,7 @@ $helpData = registerArgument($helpData, $argv, "bypassPause", "Bypass Pause", "D
 $helpData = registerArgument($helpData, $argv, "noBackup", "Disable Stream Recovery", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
 $helpData = registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyright Takedowns", "Acknowledges Instagram copyright takedowns but lets you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
 $helpData = registerArgument($helpData, $argv, "experimentalQuestion", "Enable Stream Questions", "Experimental: Attempts to allow viewers to ask questions while streaming.", "q", "stream-ama");
+$helpData = registerArgument($helpData, $argv, "webMode", "Web Console Mode", "Starts and uses a website console rather than the command line.", "w", "web");
 $helpData = registerArgument($helpData, $argv, "debugMode", "Enable Debug Mode", "Displays all requests being sent to Instagram.", "-debug");
 $helpData = registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
@@ -117,17 +118,18 @@ use InstagramAPI\Request\Live;
 use InstagramAPI\Response\FinalViewerListResponse;
 use InstagramAPI\Response\GenericResponse;
 use InstagramAPI\Response\Model\Comment;
+use InstagramAPI\Signatures;
 
 //Register commands
 Utils::log("Commands: Registering commands...");
 $commandData = [];
 $commandData = registerCommand($commandData, 'ecomments', function (StreamTick $tick) {
     $tick->ig->live->enableComments($tick->broadcastId);
-    Utils::log("Enabled Comments.");
+    return "Enabled Comments.";
 });
 $commandData = registerCommand($commandData, 'dcomments', function (StreamTick $tick) {
     $tick->ig->live->disableComments($tick->broadcastId);
-    Utils::log("Disabled Comments.");
+    return "Disabled Comments.";
 });
 $commandData = registerCommand($commandData, 'end', function (StreamTick $tick) {
     endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper);
@@ -138,67 +140,69 @@ $commandData = registerCommand($commandData, 'pin', function (StreamTick $tick) 
         is_numeric($commentId) && //Comment IDs only contain numbers
         strpos($commentId, '-') === false) { //Comment IDs are not negative
         $tick->ig->live->pinComment($tick->broadcastId, $commentId);
-        Utils::log("Pinned a comment!");
+        return "Pinned a comment!";
     } else {
-        Utils::log("You entered an invalid comment id!");
+        var_dump($tick->values);
+        return "You entered an invalid comment id!";
     }
 });
 $commandData = registerCommand($commandData, 'unpin', function (StreamTick $tick) {
     if ($tick->lastCommentPin == -1) {
-        Utils::log("You have no comment pinned!");
+        return "You have no comment pinned!";
     } else {
         $tick->ig->live->unpinComment($tick->broadcastId, $tick->lastCommentPin);
-        Utils::log("Unpinned the pinned comment!");
+        return "Unpinned the pinned comment!";
     }
 });
 $commandData = registerCommand($commandData, 'pinned', function (StreamTick $tick) {
     if ($tick->lastCommentPin == -1) {
-        Utils::log("There is no comment pinned!");
+        return "There is no comment pinned!";
     } else {
-        Utils::log("Pinned Comment:\n @" . $tick->lastCommentPinHandle . ': ' . $tick->lastCommentPinText);
+        return "Pinned Comment:\n @" . $tick->lastCommentPinHandle . ': ' . $tick->lastCommentPinText;
     }
 });
 $commandData = registerCommand($commandData, 'comment', function (StreamTick $tick) {
     $text = $tick->values[0];
     if ($text !== "") {
         $tick->ig->live->comment($tick->broadcastId, $text);
-        Utils::log("Commented on stream!");
+        return "Commented on stream!";
     } else {
-        Utils::log("Comments may not be empty!");
+        return "Comments may not be empty!";
     }
 });
 $commandData = registerCommand($commandData, 'url', function (StreamTick $tick) {
-    Utils::log("================================ Stream URL ================================\n" . $tick->streamUrl . "\n================================ Stream URL ================================");
+    return "================================ Stream URL ================================\n" . $tick->streamUrl . "\n================================ Stream URL ================================";
 });
 $commandData = registerCommand($commandData, 'key', function (StreamTick $tick) {
-    Utils::log("======================== Current Stream Key ========================\n" . $tick->streamKey . "\n======================== Current Stream Key ========================");
     if (Utils::isWindows()) {
         shell_exec("echo " . Utils::sanitizeStreamKey($tick->streamKey) . " | clip");
         Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
     }
+    return "======================== Current Stream Key ========================\n" . $tick->streamKey . "\n======================== Current Stream Key ========================";
 });
 $commandData = registerCommand($commandData, 'info', function (StreamTick $tick) {
-    Utils::log("Info:\nStatus: $tick->broadcastStatus\nTop Live Eligible: " . ($tick->topLiveEligible === 1 ? "true" : "false") . "\nViewer Count: $tick->viewerCount\nTotal Unique Viewer Count: $tick->totalViewerCount");
+    return "Info:\nStatus: $tick->broadcastStatus\nTop Live Eligible: " . ($tick->topLiveEligible === 1 ? "true" : "false") . "\nViewer Count: $tick->viewerCount\nTotal Unique Viewer Count: $tick->totalViewerCount";
 });
 $commandData = registerCommand($commandData, 'viewers', function (StreamTick $tick) {
-    Utils::log("Viewers:");
+    $response = "Viewers:\n";
     $tick->ig->live->getInfo($tick->broadcastId);
     $vCount = 0;
     foreach ($tick->ig->live->getViewerList($tick->broadcastId)->getUsers() as &$cuser) {
-        Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+        $response = $response . "[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n";
         $vCount++;
     }
     if ($vCount > 0) {
-        Utils::log("Total Viewers: " . $vCount);
+        return $response . "Total Viewers: " . $vCount;
     } else {
-        Utils::log("There are no live viewers.");
+        return $response . "There are no live viewers.";
     }
 });
 $commandData = registerCommand($commandData, 'questions', function (StreamTick $tick) {
-    Utils::log("Questions:");
+    $response = "Questions:\n";
     foreach ($tick->ig->live->getLiveBroadcastQuestions($tick->broadcastId)->getQuestions() as $cquestion) {
-        Utils::log("[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText());
+        $response = $response . "[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText();
     }
+    return $response;
 });
 $commandData = registerCommand($commandData, 'showquestion', function (StreamTick $tick) {
     $questionId = $tick->values[0];
@@ -207,33 +211,33 @@ $commandData = registerCommand($commandData, 'showquestion', function (StreamTic
         strpos($questionId, '-') === false) { //Question IDs are not negative
         $tick->lastQuestion = $questionId;
         $tick->ig->live->showQuestion($tick->broadcastId, $questionId);
-        Utils::log("Displayed question!");
+        return "Displayed question!";
     } else {
-        Utils::log("Invalid question id!");
+        return "Invalid question id!";
     }
 });
 $commandData = registerCommand($commandData, 'hidequestion', function (StreamTick $tick) {
     if ($tick->lastQuestion == -1) {
-        Utils::log("There is no question displayed!");
+        return "There is no question displayed!";
     } else {
         $tick->ig->live->hideQuestion($tick->broadcastId, $tick->lastQuestion);
         $tick->lastQuestion = -1;
-        Utils::log("Removed the displayed question!");
+        return "Removed the displayed question!";
     }
 });
 $commandData = registerCommand($commandData, 'wave', function (StreamTick $tick) {
     $viewerId = $tick->values[0];
     try {
         @$tick->ig->live->wave($tick->broadcastId, $viewerId);
-        Utils::log("Waved at a user!");
+        return "Waved at a user!";
     } catch (Exception $waveError) {
-        Utils::log("User does not exist or user has already been waved at.");
+        return "User does not exist or user has already been waved at.";
     }
 });
 $commandData = registerCommand($commandData, 'block', function (StreamTick $tick) {
     $userId = $tick->values[0];
     @$tick->ig->people->block($userId);
-    Utils::log("Blocked a user!");
+    return "Blocked a user!";
 });
 Utils::log("Commands: Registered commands!");
 
@@ -482,10 +486,14 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
         Utils::log("Command Line: To start the new command line, please run the commandLine.php script.");
     } elseif ($console) {
+        $consoleCommand = PHP_BINARY . (Utils::isWindows() ? "\" " : (Utils::isMac() ? (" " . __DIR__ . "/") : "")) . "commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "");
+        if (webMode) {
+            $consoleCommand = PHP_BINARY . (Utils::isWindows() ? "\"" : "") . " -S " . WEB_HOST . ":" . WEB_PORT . " " . (Utils::isMac() ? __DIR__ . "/" : "") . "webServer.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "");
+        }
         if (Utils::isWindows()) {
-            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . PHP_BINARY . "\" commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : ""), "r"));
+            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . $consoleCommand, "r"));
         } elseif (Utils::isMac()) {
-            pclose(popen("osascript -e 'tell application \"Terminal\" to do script \"" . PHP_BINARY . " " . __DIR__ . "/commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "") . "\"'", "r"));
+            pclose(popen("osascript -e 'tell application \"Terminal\" to do script \"" . $consoleCommand . "\"'", "r"));
         }
     }
 
@@ -507,6 +515,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
 
     //Remove old command requests
     @unlink(__DIR__ . '/request');
+    @unlink(__DIR__ . '/webLink.json');
 
     //Log new streaming session if comment output is enabled
     if (logCommentOutput) {
@@ -519,13 +528,16 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
         $streamTick->lastQuestion = $startingQuestion;
     }
     do {
+        $consoleOutput = array();
         $request = json_decode(@file_get_contents(__DIR__ . '/request'), true);
         if (!empty($request)) {
             try {
                 $cmd = $request['cmd'];
                 if (isset($commandData[$cmd]) && is_callable($commandData[$cmd])) {
                     $streamTick = $streamTick->doTick($request['values'], $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount);
-                    @call_user_func($commandData[$cmd], $streamTick);
+                    $response = @call_user_func($commandData[$cmd], $streamTick);
+                    Utils::log($response);
+                    $consoleOutput[] = $response;
                 }
                 @unlink(__DIR__ . '/request');
             } catch (Exception $e) {
@@ -561,9 +573,16 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             $lastCommentPin = -1;
         }
 
+        $commentsArray = array();
         if (!empty($comments)) {
             foreach ($comments as $comment) {
                 addComment($comment);
+                $commentsArray[] = [
+                    "commentId" => $comment->getPk(),
+                    "userId" => $comment->getUser()->getPk(),
+                    "username" => $comment->getUser()->getUsername(),
+                    "text" => $comment->getText()
+                ];
             }
         }
         if (!empty($systemComments)) {
@@ -574,14 +593,17 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
                     }
                 }
                 addComment($systemComment, true);
+                $consoleOutput[] = $systemComment->getText();
             }
         }
 
         //Process Likes
+        $likesArray = array();
         $likeCountResponse = $ig->live->getLikeCount($broadcastId, $lastLikeTs); //Get our current batch for likes
         $lastLikeTs = $likeCountResponse->getLikeTs();
         foreach ($likeCountResponse->getLikers() as $user) {
             addLike((isset($userCache[$user->getUserId()]) ? ("@" . $userCache[$user->getUserId()]) : "An Unknown User"));
+            $likesArray[] = (isset($userCache[$user->getUserId()]) ? ("@" . $userCache[$user->getUserId()]) : "An Unknown User") . " has liked the stream!";
         }
 
         //Send Heartbeat and Fetch Info
@@ -649,6 +671,16 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             Utils::log("Command Line: Please close the console window!");
             sleep(2);
             exit(0);
+        }
+
+        if (webMode) {
+            file_put_contents('webLink.json', json_encode(array(
+                'uuid' => Signatures::generateUUID(),
+                'username' => $ig->username,
+                'consoleOutput' => $consoleOutput,
+                'comments' => $commentsArray,
+                'likes' => $likesArray
+            )));
         }
 
         //Backup stream data
@@ -836,7 +868,11 @@ function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $exi
     }
     Utils::deleteRecovery();
     @unlink(__DIR__ . '/request');
+    @unlink(__DIR__ . '/webLink.json');
     if ($exit) {
+        if (webMode) {
+            Utils::log("Web Server: Please remember to close the other web server php window!");
+        }
         sleep(2);
         exit(0);
     }
