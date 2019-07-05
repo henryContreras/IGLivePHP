@@ -102,7 +102,8 @@ if ($requestUri === '/static/script.js') {
     <p class="mb-20">Please enter the question id to show on the stream... This will show as a card with the question
         and user who asked the question on the bottom of the stream.</p>
     <div class="btn-group bottom">
-        <input id="question-text" type="text" class="btn btn-grey br-25 mb-20 w-100" placeholder="Enter question id..."/>
+        <input id="question-text" type="text" class="btn btn-grey br-25 mb-20 w-100"
+               placeholder="Enter question id..."/>
         <button id="question-button" class="btn btn-red br-25 w-100">Show Question</button>
     </div>
 </div>
@@ -159,7 +160,8 @@ if ($requestUri === '/static/script.js') {
         </div>
     </main>
     <footer class="text-center">
-        <p>&copy; 2019<?php echo((date("Y") !== "2019" ? (" - " . date("Y")) : "")); ?> JRoy &amp; Eenjesta - <span id="about" class="red">About</span></p>
+        <p>&copy; 2019<?php echo((date("Y") !== "2019" ? (" - " . date("Y")) : "")); ?> JRoy &amp; Eenjesta - <span
+                    id="about" class="red">About</span></p>
     </footer>
     <div class="display-data">
 
