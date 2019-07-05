@@ -81,8 +81,8 @@ $(document).ready(function () {
     $('#info').on('click', function () {
         sendRequest('info', '[]')
     });
-    blackOverlay.fadeIn();
-    $('#modal-waiting').fadeIn();
+    // blackOverlay.fadeIn();
+    // $('#modal-waiting').fadeIn();
 });
 setInterval(function () {
     $.ajax({
