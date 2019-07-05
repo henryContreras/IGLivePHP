@@ -21,7 +21,11 @@ If you'd like a video version of this tutorial, see [this video](https://www.you
 * Robust Installer/Updater
   * To install read the [Live Setup](#live-setup) section
   * To check for/apply an update just do `php update.php`
-    * If you want to try beta feature just do: `php update.php --beta`
+    * If you want to try beta features just do: `php update.php --beta`
+* Web Control Panel
+  * Use by doing `php goLive.php --web`
+  * By default, you can access the control panel by going to `127.0.0.1` in your browser
+    * You can change this by editing the `WEB_PORT` option in the `config.php` from `80` to some other number and then going to `127.0.0.1:PORT` where `PORT` is the number you changed it to
 * Supports Accounts with 2FA
 * View Live Chat/Likes (Windows/Mac Only)
 * Execute Commands to Comment, Wave, Pin Comments, Show Questions, and more...
@@ -36,16 +40,19 @@ To view what commands you can run while streaming: [Click Here](https://github.c
 
 To view what flags you can run the `goLive.php` script with: [Click Here](https://github.com/JRoy/InstagramLive-PHP/wiki/Command-Line-Arguments) 
 # FAQ
+#### I get "Parse error: syntax error" or "PHP Fatal error:  Uncaught TypeError" when running the script
+You have an outdated version of PHP, please make sure your using PHP 7 or greater.
+#### I get "Fatal error: require_once(): Failed opening required" when running the script
+You didn't install the script correctly, please check the installation guide or video above.
 #### OBS gives a "Failed to connect" error
 This could be due to the following reasons:
-* An invalid stream key. The stream key changes for every stream, make sure you update it.
-* Your system does not support un-secure rmtp. You can fix this by running the script with `--use-rmtps` (`php goLive.php --use-rmtps`).
+* Your version of OBS doesn't support RTMPS. Update to the latest OBS Studio version.
 #### I've stopped streaming but Instagram still shows me as live
 Make sure you actually running the `stop` command when you're streaming and not close it.
 #### I don't see or get an error in Instagram when archiving my story
 This could be due to the following reasons:
 * You didn't stream anything from OBS/your encoder. In this case, you should delete the archive.
-* You streamed a disallowed aspect ratio. Make sure you're using a vertical 16:9 aspect ratio (9:16) like 720x1280. In this case, you should delete the archive.
+* You streamed a disallowed aspect ratio or resolution. Make sure you're using 1080x1794. In this case, you should delete the archive.
 * Your stream is still processing. This is normal for longer streams.
 #### I get "CURL Error 60: SSL certificate problem" when trying to log into Instagram
 This is due to CURL not having a valid CA. You can find a solution here: [https://stackoverflow.com/a/34883260](https://stackoverflow.com/a/34883260).
