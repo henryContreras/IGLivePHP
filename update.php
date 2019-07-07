@@ -76,6 +76,14 @@ logTxt("Fetching Latest " . ($beta === true ? "Beta" : "Stable") . " Release Dat
 $release = json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/" . ($beta === true ? "beta" : "stable") . ".json"), true);
 logTxt("Fetched Version: " . $release['version']);
 
+logTxt("Validating directories...");
+foreach ($release['dirs'] as $dir) {
+    if (!file_exists($dir . '/')) {
+        mkdir($dir);
+        logTxt("Directory " . $dir . " Created");
+    }
+}
+
 logTxt("Comparing Files...");
 $queue = [];
 $composer = false;

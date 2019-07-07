@@ -21,7 +21,11 @@ define('OBS_EXEC_NAME', 'obs64.exe'); //Recommend you don't touch this unless yo
 define('OBS_X', '1080'); //You shouldn't touch this
 define('OBS_Y', '1794'); //You shouldn't touch this
 
+//Web console settings
+define('WEB_HOST', '127.0.0.1'); //The IP to bind the web console to
+define('WEB_PORT', '80'); //The port to bind the web console to
+
 define('ANALYTICS_OPT_OUT', false); //Change to true if you want to opt of of anonymous analytics.
 
 //Config Metadata
-define('configVersionCode', '8'); //You shouldn't touch this
+define('configVersionCode', '9'); //You shouldn't touch this
