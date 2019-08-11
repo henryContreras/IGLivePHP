@@ -91,7 +91,7 @@ function newCommand()
         pin - Pins a Comment\n
         unpin - Unpins a comment if one is pinned\n
         pinned - Gets the currently pinned comment\n
-        comment - Comments on the stream\n
+        comment - Comment on the stream\n
         questions - Shows all questions from the stream\n
         showquestion - Displays question on livestream\n
         hidequestion - Hides displayed question if one is displayed\n
