@@ -9,9 +9,9 @@ if (php_sapi_name() !== "cli") {
 }
 
 //Script version constants
-define("scriptVersion", "1.8");
+define("scriptVersion", "1.8.1");
 define("scriptVersionCode", "57");
-define("scriptFlavor", "stable");
+define("scriptFlavor", "custom");
 
 //Command Line Argument Registration
 $helpData = [];
