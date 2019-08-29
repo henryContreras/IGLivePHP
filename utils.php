@@ -222,6 +222,15 @@ class Utils
     }
 
     /**
+     * Kills a process with
+     * @param $pid
+     */
+    public static function killPid($pid)
+    {
+        exec((self::isWindows() ? "taskkill /F /PID" : "kill -9") . " $pid");
+    }
+
+    /**
      * Runs our login flow to authenticate the user as well as resolve all two-factor/challenge items.
      * @param string $username Username of the target account.
      * @param string $password Password of the target account.

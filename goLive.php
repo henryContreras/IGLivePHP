@@ -9,7 +9,7 @@ if (php_sapi_name() !== "cli") {
 }
 
 //Script version constants
-define("scriptVersion", "1.8.1");
+define("scriptVersion", "1.9");
 define("scriptVersionCode", "57");
 define("scriptFlavor", "custom");
 
@@ -132,7 +132,7 @@ $commandData = registerCommand($commandData, 'dcomments', function (StreamTick $
     return "Disabled Comments.";
 });
 $commandData = registerCommand($commandData, 'end', function (StreamTick $tick) {
-    endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper);
+    endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper, $tick->pid);
 });
 $commandData = registerCommand($commandData, 'pin', function (StreamTick $tick) {
     $commentId = $tick->values[0];
@@ -461,7 +461,7 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
         }
 
         Utils::log("Livestream: Something has gone wrong!");
-        endLivestreamFlow($ig, $broadcastId, '', $obsAutomation, $helper);
+        endLivestreamFlow($ig, $broadcastId, '', $obsAutomation, $helper, 0);
     } catch (Exception $e) {
         Utils::log("Error: An error occurred during livestream initialization.");
         Utils::dump($e->getMessage());
@@ -497,11 +497,22 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
         if (webMode) {
             $consoleCommand = PHP_BINARY . (Utils::isWindows() ? "\"" : "") . " -S " . WEB_HOST . ":" . WEB_PORT . " " . (Utils::isMac() ? __DIR__ . "/" : "") . "webServer.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "");
         }
+        $cmd = "";
         if (Utils::isWindows()) {
-            pclose(popen("start \"InstagramLive-PHP: Command Line\" \"" . $consoleCommand, "r"));
+            $cmd = "start \"InstagramLive-PHP: Command Line\" \"" . $consoleCommand;
         } elseif (Utils::isMac()) {
-            pclose(popen("osascript -e 'tell application \"Terminal\" to do script \"" . $consoleCommand . "\"'", "r"));
+            $cmd = "osascript -e 'tell application \"Terminal\" to do script \"" . $consoleCommand . "\"'";
         }
+        $process = proc_open($cmd, array(), $pipe);
+        $pid = intval(proc_get_status($process)['pid']);
+        if (Utils::isWindows()) {
+            $wmic = array_filter(explode(" ", shell_exec("wmic process get parentprocessid,processid | find \"".$pid."\"")));
+            array_pop($wmic);
+            $pid = end($wmic);
+        } else {
+            $pid += 1;
+        }
+        proc_close($process);
     }
 
     //Initialize variables
@@ -541,7 +552,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             try {
                 $cmd = $request['cmd'];
                 if (isset($commandData[$cmd]) && is_callable($commandData[$cmd])) {
-                    $streamTick = $streamTick->doTick($request['values'], $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount);
+                    $streamTick = $streamTick->doTick($request['values'], $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid);
                     $response = @call_user_func($commandData[$cmd], $streamTick);
                     Utils::log($response);
                     $consoleOutput[] = $response;
@@ -627,7 +638,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             Utils::log("Policy: Instagram has sent a policy violation" . ((fightCopyright && !$attemptedFight) ? "." : " and you stream has been stopped!") . " The following policy was broken: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
             if ($attemptedFight || !fightCopyright) {
                 Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-                endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper);
+                endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, $pid);
             }
             $ig->live->resumeBroadcastAfterContentMatch($broadcastId);
             $attemptedFight = true;
@@ -852,9 +863,10 @@ function addComment($comment, $system = false)
  * @param string $archived 'yes' if stream is archived.
  * @param bool $obsAuto True if obs automation is enabled.
  * @param ObsHelper $helper The ObsHelper object used for obs actions.
+ * @param string|int $pid The process id of the web server or command line.
  * @param bool $exit True if script should exit after ending stream.
  */
-function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $exit = true)
+function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid, $exit = true)
 {
     if ($obsAuto) {
         Utils::log("OBS Integration: Killing OBS...");
@@ -877,8 +889,8 @@ function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $exi
     @unlink(__DIR__ . '/request');
     @unlink(__DIR__ . '/webLink.json');
     if ($exit) {
-        if (webMode) {
-            Utils::log("Web Server: Please remember to close the other web server php window!");
+        if (intval($pid) !== 0) {
+            Utils::killPid($pid);
         }
         sleep(2);
         exit(0);
@@ -1024,6 +1036,11 @@ class StreamTick
      */
     public $totalViewerCount;
 
+    /**
+     * @var int|string
+     */
+    public $pid;
+
     // Non-ticked variables
 
     /**
@@ -1031,7 +1048,7 @@ class StreamTick
      */
     public $lastQuestion = -1;
 
-    public function doTick($values, $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount): self
+    public function doTick($values, $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid): self
     {
         $this->values = $values;
         $this->ig = $ig;
@@ -1047,6 +1064,7 @@ class StreamTick
         $this->topLiveEligible = $topLiveEligible;
         $this->viewerCount = $viewerCount;
         $this->totalViewerCount = $totalViewerCount;
+        $this->pid = $pid;
         return $this;
     }
 }
