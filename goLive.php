@@ -302,6 +302,14 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
         Utils::log("Recovery: Deleted Outdated Recovery!");
     }
 
+    if (Utils::isRecovery()) {
+        Utils::log("Recovery: Detected a previous stream that exited improperly! Would you like to pick up where you left off or start from scratch?");
+        Utils::log("Recovery: Type\"yes\" to pick up where you left off or enter to start from scratch...");
+        if (Utils::promptInput() !== "yes") {
+            Utils::deleteRecovery();
+        }
+    }
+
     try {
         //Livestream creation
         $obsAutomation = true;
