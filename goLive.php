@@ -26,6 +26,7 @@ $helpData = registerArgument($helpData, $argv, "logCommentOutput", "Log Comment 
 $helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Accept OBS Automation Prompt", "Automatically accepts the OBS prompt.", "-obs");
 $helpData = registerArgument($helpData, $argv, "obsNoStream", "Disable OBS Auto-Launch", "Disables automatic stream start in OBS.", "-obs-no-stream");
 $helpData = registerArgument($helpData, $argv, "obsNoIni", "Disable OBS Auto-Settings", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
+$helpData = registerArgument($helpData, $argv, "obsNoWait", "Disable OBS Wait", "Disable waiting for OBS to launch.", "-obs-no-wait");
 $helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disable OBS Automation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
 $helpData = registerArgument($helpData, $argv, "startDisableComments", "Disable Comments", "Automatically disables commands when the stream starts.", "-dcomments");
 $helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Limit Stream Time", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
@@ -394,14 +395,16 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
                 if (!$helper->slobsPresent) {
                     Utils::log("OBS Integration: Re-launching OBS...");
                     $helper->spawnOBS();
-                    Utils::log("OBS Integration: Waiting up to 5 seconds for OBS...");
-                    if ($helper->waitForOBS()) {
-                        sleep(1);
-                        Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
-                    } else {
-                        Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
-                        if (!bypassPause) {
-                            Utils::promptInput("");
+                    if (!obsNoWait) {
+                        Utils::log("OBS Integration: Waiting up to 5 seconds for OBS...");
+                        if ($helper->waitForOBS()) {
+                            sleep(1);
+                            Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
+                        } else {
+                            Utils::log("OBS Integration: OBS was not detected! Press enter once you confirm OBS is streaming...");
+                            if (!bypassPause) {
+                                Utils::promptInput("");
+                            }
                         }
                     }
                 }
