@@ -38,6 +38,8 @@ $helpData = registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyrig
 $helpData = registerArgument($helpData, $argv, "experimentalQuestion", "Enable Stream Questions", "Experimental: Attempts to allow viewers to ask questions while streaming.", "q", "stream-ama");
 $helpData = registerArgument($helpData, $argv, "webMode", "Web Console Mode", "Starts and uses a website console rather than the command line.", "w", "web");
 $helpData = registerArgument($helpData, $argv, "debugMode", "Enable Debug Mode", "Displays all requests being sent to Instagram.", "-debug");
+$helpData = registerArgument($helpData, $argv, "discardRecovery", "Auto Discard Recovery", "Automatically discards stream recovery.", "-discard-recovery");
+$helpData = registerArgument($helpData, $argv, "acceptRecovery", "Auto Accept Recovery", "Automatically accepts stream recovery.", "-accept-recovery");
 $helpData = registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
 $helpData = registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
 $helpData = registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
@@ -302,7 +304,11 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
         Utils::log("Recovery: Deleted Outdated Recovery!");
     }
 
-    if (Utils::isRecovery()) {
+    if (discardRecovery) {
+        Utils::deleteRecovery();
+    }
+
+    if (Utils::isRecovery() && !acceptRecovery) {
         Utils::log("Recovery: Detected a previous stream that exited improperly! Would you like to pick up where you left off or start from scratch?");
         Utils::log("Recovery: Type\"yes\" to pick up where you left off or enter to start from scratch...");
         if (Utils::promptInput() !== "yes") {
