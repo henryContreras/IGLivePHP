@@ -270,12 +270,12 @@ class ObsHelper
     public function waitForOBS(): bool
     {
         $attempts = 0;
-        while ($attempts != 15) {
+        while ($attempts != 5) {
             if ($this->isObsRunning()) {
                 return true;
             }
             $attempts++;
-            sleep(1);
+            sleep(5);
         }
         return false;
     }

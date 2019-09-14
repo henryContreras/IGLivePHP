@@ -394,7 +394,7 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
                 if (!$helper->slobsPresent) {
                     Utils::log("OBS Integration: Re-launching OBS...");
                     $helper->spawnOBS();
-                    Utils::log("OBS Integration: Waiting up to 15 seconds for OBS...");
+                    Utils::log("OBS Integration: Waiting up to 5 seconds for OBS...");
                     if ($helper->waitForOBS()) {
                         sleep(1);
                         Utils::log("OBS Integration: OBS Launched Successfully! Starting Stream...");
