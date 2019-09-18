@@ -64,6 +64,13 @@ function newCommand()
                 sendRequest("pin", [$commentId]);
                 break;
             }
+        case 'wave':
+            {
+                Utils::log("Please enter the user id you would like to wave at.");
+                $viewerId = Utils::promptInput();
+                sendRequest('wave', [$viewerId]);
+                break;
+            }
         case 'block':
             {
                 Utils::log("Please enter the user id you would like to block.");
@@ -88,6 +95,7 @@ function newCommand()
         questions - Shows all questions from the stream\n
         showquestion - Displays question on livestream\n
         hidequestion - Hides displayed question if one is displayed\n
+        wave - Waves at a user who has joined the stream\n
         block - Blocks a user from your account\n
         stop - Stops the Live Stream");
                 break;

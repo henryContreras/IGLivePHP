@@ -228,6 +228,15 @@ $commandData = registerCommand($commandData, 'hidequestion', function (StreamTic
         return "Removed the displayed question!";
     }
 });
+$commandData = registerCommand($commandData, 'wave', function (StreamTick $tick) {
+    $viewerId = $tick->values[0];
+    try {
+        @$tick->ig->live->wave($tick->broadcastId, $viewerId);
+        return "Waved at a user!";
+    } catch (Exception $waveError) {
+        return "User does not exist or user has already been waved at.";
+    }
+});
 $commandData = registerCommand($commandData, 'block', function (StreamTick $tick) {
     $userId = $tick->values[0];
     @$tick->ig->people->block($userId);
@@ -798,6 +807,19 @@ function legacyLivestreamingFlow($live, $broadcastId, $streamUrl, $streamKey, $o
                 }
                 break;
             }
+        case 'wave':
+            {
+                Utils::log("Please enter the user id you would like to wave at.");
+                $viewerId = Utils::promptInput();
+                try {
+                    $live->wave($broadcastId, $viewerId);
+                    Utils::log("Waved at a user!");
+                } catch (Exception $waveError) {
+                    Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+                    Utils::dump($waveError->getMessage());
+                }
+                break;
+            }
         case 'comment':
             {
                 Utils::log("Please enter the text you wish to comment.");
@@ -812,7 +834,7 @@ function legacyLivestreamingFlow($live, $broadcastId, $streamUrl, $streamKey, $o
             }
         case 'help':
             {
-                Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nstop - Stops the Live Stream");
+                Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
                 break;
             }
         default:
