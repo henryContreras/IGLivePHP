@@ -135,7 +135,7 @@ $commandData = registerCommand($commandData, 'dcomments', function (StreamTick $
     return "Disabled Comments.";
 });
 $commandData = registerCommand($commandData, 'end', function (StreamTick $tick) {
-    endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper, $tick->pid);
+    endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper, $tick->pid, $tick->commentCount, $tick->likeCount, $tick->burstLikeCount);
 });
 $commandData = registerCommand($commandData, 'pin', function (StreamTick $tick) {
     $commentId = $tick->values[0];
@@ -478,7 +478,7 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
         }
 
         Utils::log("Livestream: Something has gone wrong!");
-        endLivestreamFlow($ig, $broadcastId, '', $obsAutomation, $helper, 0);
+        endLivestreamFlow($ig, $broadcastId, '', $obsAutomation, $helper, 0, 0, 0, 0);
     } catch (Exception $e) {
         Utils::log("Error: An error occurred during livestream initialization.");
         Utils::dump($e->getMessage());
@@ -547,6 +547,9 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
     $startTime = ($startingTime === -1 ? time() : $startingTime);
     $userCache = array();
     $attemptedFight = false;
+    $commentCount = 0;
+    $likeCount = 0;
+    $likeBurstCount = 0;
 
     //Remove old command requests
     @unlink(__DIR__ . '/request');
@@ -569,7 +572,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             try {
                 $cmd = $request['cmd'];
                 if (isset($commandData[$cmd]) && is_callable($commandData[$cmd])) {
-                    $streamTick = $streamTick->doTick($request['values'], $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid);
+                    $streamTick = $streamTick->doTick($request['values'], $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid, $commentCount, $likeCount, $likeBurstCount);
                     $response = @call_user_func($commandData[$cmd], $streamTick);
                     Utils::log($response);
                     $consoleOutput[] = $response;
@@ -618,6 +621,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
                     "username" => $comment->getUser()->getUsername(),
                     "text" => $comment->getText()
                 ];
+                $commentCount++;
             }
         }
         if (!empty($systemComments)) {
@@ -641,6 +645,9 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             $likesArray[] = (isset($userCache[$user->getUserId()]) ? ("@" . $userCache[$user->getUserId()]) : "An Unknown User") . " has liked the stream!";
         }
 
+        $likeCount += $likeCountResponse->getLikes();
+        $likeBurstCount += $likeCountResponse->getBurstLikes();
+
         //Send Heartbeat and Fetch Info
         $heartbeatResponse = $ig->live->getHeartbeatAndViewerCount($broadcastId); //Maintain :clap: comments :clap: and :clap: likes :clap: after :clap: stream
         $broadcastStatus = $heartbeatResponse->getBroadcastStatus();
@@ -655,7 +662,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             Utils::log("Policy: Instagram has sent a policy violation" . ((fightCopyright && !$attemptedFight) ? "." : " and you stream has been stopped!") . " The following policy was broken: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
             if ($attemptedFight || !fightCopyright) {
                 Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
-                endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, $pid);
+                endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, $pid, $commentCount, $likeCount, $likeBurstCount);
             }
             $ig->live->resumeBroadcastAfterContentMatch($broadcastId);
             $attemptedFight = true;
@@ -663,7 +670,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
 
         //Calculate Times for Limiter Argument
         if ($streamTotalSec > 0 && (time() - $startTime) >= $streamTotalSec) {
-            endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, false);
+            endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, $pid, $commentCount, $likeCount, $likeBurstCount, false);
             Utils::log("Livestream: The livestream has ended due to user requested stream limit of $streamTotalSec seconds!");
 
             $archived = "yes";
@@ -675,14 +682,12 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
                 $ig->live->addToPostLive($broadcastId);
                 Utils::log("Livestream: Added livestream to archive!");
             }
-            Utils::log("Command Line: Please close the console window!");
-            sleep(2);
             exit(0);
         }
 
         //Calculate Times for Hour-Cutoff
         if (!bypassCutoff && (time() - $startTime) >= 3480) {
-            endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, false);
+            endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, 0, $commentCount, $likeCount, $likeBurstCount, false);
             Utils::log("Livestream: The livestream has ended due to Instagram's one hour time limit!");
             $archived = "yes";
             if (!autoArchive && !autoDiscard) {
@@ -755,7 +760,7 @@ function legacyLivestreamingFlow($live, $broadcastId, $streamUrl, $streamKey, $o
         case 'stop':
         case 'end':
             {
-                endLivestreamFlow($live->ig, $broadcastId, '', $obsAuto, $helper, false);
+                endLivestreamFlow($live->ig, $broadcastId, '', $obsAuto, $helper, 0, 0, 0, 0, false);
                 $archived = "yes";
                 if (!autoArchive && !autoDiscard) {
                     Utils::log("Livestream: Would you like to archive this stream?");
@@ -881,9 +886,12 @@ function addComment($comment, $system = false)
  * @param bool $obsAuto True if obs automation is enabled.
  * @param ObsHelper $helper The ObsHelper object used for obs actions.
  * @param string|int $pid The process id of the web server or command line.
+ * @param int $commentCount The amount of comments left on the stream.
+ * @param int $likeCount The amount of likes left on the stream.
+ * @param int $likeBurstCount The amount of burst likes left on the stream.
  * @param bool $exit True if script should exit after ending stream.
  */
-function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid, $exit = true)
+function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid, $commentCount, $likeCount, $likeBurstCount, $exit = true)
 {
     if ($obsAuto) {
         Utils::log("OBS Integration: Killing OBS...");
@@ -894,8 +902,8 @@ function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid
         $helper->resetServiceState();
     }
     Utils::log("Livestream: Ending livestream...");
-    //Needs this to retain, I guess?
     parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
+    Utils::log("Analytics: Your stream ended with $commentCount comments, $likeCount likes, and $likeBurstCount!");
     $ig->live->end($broadcastId);
     Utils::log("Livestream: Ended livestream!");
     if ($archived == 'yes') {
@@ -909,6 +917,7 @@ function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid
         if (intval($pid) !== 0) {
             Utils::killPid($pid);
         }
+        Utils::log("Goodbye: Thanks for streaming with InstagramLive-PHP! Consider donating @ https://www.paypal.me/JoshuaRoy1 <3");
         sleep(2);
         exit(0);
     }
@@ -927,10 +936,10 @@ function parseFinalViewers($finalResponse)
     $finalViewers = rtrim($finalViewers, " ,");
 
     if ($finalResponse->getTotalUniqueViewerCount() > 0) {
-        Utils::log($finalResponse->getTotalUniqueViewerCount() . " Final Viewer(s).");
+        Utils::log("Viewers: " . $finalResponse->getTotalUniqueViewerCount() . " Final Viewer(s).");
         Utils::log("Top Viewers: $finalViewers");
     } else {
-        Utils::log("Your stream had no viewers :(");
+        Utils::log("Viewers: Your stream had no viewers :(");
     }
 
 
@@ -1058,6 +1067,21 @@ class StreamTick
      */
     public $pid;
 
+    /**
+     * @var int
+     */
+    public $commentCount;
+
+    /**
+     * @var int
+     */
+    public $likeCount;
+
+    /**
+     * @var int
+     */
+    public $burstLikeCount;
+
     // Non-ticked variables
 
     /**
@@ -1065,7 +1089,7 @@ class StreamTick
      */
     public $lastQuestion = -1;
 
-    public function doTick($values, $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid): self
+    public function doTick($values, $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid, $commentCount, $likeCount, $burstLikeCount): self
     {
         $this->values = $values;
         $this->ig = $ig;
@@ -1082,6 +1106,9 @@ class StreamTick
         $this->viewerCount = $viewerCount;
         $this->totalViewerCount = $totalViewerCount;
         $this->pid = $pid;
+        $this->commentCount = $commentCount;
+        $this->likeCount = $likeCount;
+        $this->burstLikeCount = $burstLikeCount;
         return $this;
     }
 }
