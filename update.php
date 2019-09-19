@@ -1,6 +1,7 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
 logTxt("Loading Updater...");
+clearstatcache();
 
 $requestedTag = null;
 
@@ -29,8 +30,8 @@ if ($requestedTag !== null) {
             continue;
         }
         if ($file == 'composer.json') {
-            $localMd5 = md5(preg_replace("/\r|\n/", "", trim(file_get_contents($file))));
-            $remoteMd5 = md5(preg_replace("/\r|\n/", "", trim($downloaded)));
+            $localMd5 = md5(preg_replace("/[\r|\n]/", "", trim(file_get_contents($file))));
+            $remoteMd5 = md5(preg_replace("/[\r|\n]/", "", trim($downloaded)));
             if ($localMd5 === $remoteMd5) {
                 continue;
             }
@@ -41,12 +42,7 @@ if ($requestedTag !== null) {
     }
 
     if (!file_exists("vendor/") || $composer) {
-        logTxt($composer ? "Detected composer update, re-installing..." : "No vendor folder detected, attempting to recover...");
-        exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
-        if (!file_exists("vendor/")) {
-            logTxt("Composer install was unsuccessful! Please make sure composer is ACTUALLY INSTALLED!");
-            exit();
-        }
+        doComposerInstall($composer);
     }
 
     logTxt("Successfully fetched & updated to tag $requestedTag");
@@ -93,8 +89,8 @@ foreach ($release['files'] as $file) {
         array_push($queue, $file);
         continue;
     }
-    $localMd5 = md5(preg_replace("/\r|\n/", "", trim(file_get_contents($file))));
-    $remoteMd5 = md5(preg_replace("/\r|\n/", "", trim(file_get_contents($release['links'][$file]))));
+    $localMd5 = md5(preg_replace("/[\r|\n]/", "", trim(file_get_contents($file))));
+    $remoteMd5 = md5(preg_replace("/[\r|\n]/", "", trim(file_get_contents($release['links'][$file]))));
     logTxt($file . ": " . $localMd5 . " - " . $remoteMd5);
     if ($localMd5 !== $remoteMd5) {
         array_push($queue, $file);
@@ -127,15 +123,33 @@ if (count($queue) != 0) {
 }
 
 if (!file_exists("vendor/") || $composer) {
+    doComposerInstall($composer);
+}
+
+logTxt("InstagramLive-PHP is now up-to-date!");
+
+function doComposerInstall($composer)
+{
     logTxt($composer ? "Detected composer update, re-installing..." : "No vendor folder detected, attempting to recover...");
+
+    if (!file_exists('composer.phar')) {
+        logTxt("Composer not found, installing...");
+        copy('https://getcomposer.org/installer', 'composer-install.php');
+        if (hash_file('sha384', 'composer-install.php') !== 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') {
+            logTxt("Composer installer was invalid! Aborting...");
+            exit();
+        }
+        exec("\"" . PHP_BINARY . "\" composer-install.php --quiet");
+        unlink('composer-install.php');
+        logTxt("Installed composer!");
+    }
+
     exec((file_exists("composer.phar") ? ("\"" . PHP_BINARY . "\" composer.phar") : "composer") . " update");
     if (!file_exists("vendor/")) {
         logTxt("Composer install was unsuccessful! Please make sure composer is ACTUALLY INSTALLED!");
         exit();
     }
 }
-
-logTxt("InstagramLive-PHP is now up-to-date!");
 
 function is404($http_response_header): bool
 {

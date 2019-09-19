@@ -1,10 +1,11 @@
 <?php
+/** @noinspection PhpUndefinedNamespaceInspection */
 /** @noinspection PhpUndefinedConstantInspection */
 /** @noinspection PhpComposerExtensionStubsInspection */
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use InstagramAPI\Exception\ChallengeRequiredException;
+use InstagramAPI\Exception\InstagramException;
 use InstagramAPI\Instagram;
 use LazyJsonMapper\Exception\LazyJsonMapperException;
 
@@ -222,6 +223,15 @@ class Utils
     }
 
     /**
+     * Kills a process with
+     * @param $pid
+     */
+    public static function killPid($pid)
+    {
+        exec((self::isWindows() ? "taskkill /F /PID" : "kill -9") . " $pid");
+    }
+
+    /**
      * Runs our login flow to authenticate the user as well as resolve all two-factor/challenge items.
      * @param string $username Username of the target account.
      * @param string $password Password of the target account.
@@ -232,6 +242,9 @@ class Utils
     public static function loginFlow($username, $password, $debug = false, $truncatedDebug = false): ExtendedInstagram
     {
         $ig = new ExtendedInstagram($debug, $truncatedDebug);
+
+        $privateApi = property_exists($ig, 'checkpoint');
+
         try {
             $loginResponse = $ig->login($username, $password);
 
@@ -251,10 +264,10 @@ class Utils
                 self::log("Login Flow: Logging in with verification token...");
                 $ig->finishTwoFactorLogin($username, $password, $twoFactorIdentifier, $verificationCode, $verificationMethod);
             }
-        } catch (Exception $e) {
+        } catch (InstagramException $e) {
             try {
-                /** @noinspection PhpUndefinedMethodInspection */
-                if ($e instanceof ChallengeRequiredException || (method_exists($e->getResponse(), 'getErrorType') && $e->getResponse()->getErrorType() === 'checkpoint_challenge_required')) {
+                /** @noinspection PhpUndefinedClassInspection */
+                if ((class_exists('InstagramAPI\\Exception\\ChallengeRequiredException') && $e instanceof InstagramAPI\Exception\ChallengeRequiredException) || (class_exists('InstagramAPI\Exception\Checkpoint\ChallengeRequiredException') && $e instanceof InstagramAPI\Exception\Checkpoint\ChallengeRequiredException)) {
                     $response = $e->getResponse();
 
                     self::log("Suspicious Login: Would you like to verify your account via text or email? Type \"yes\" or just press enter to ignore.");
@@ -268,54 +281,10 @@ class Utils
                     self::log("Suspicious Login: Preparing to verify account...");
                     sleep(3);
 
-                    self::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
-                    $choice = self::promptInput();
-                    if ($choice === "sms") {
-                        $verification_method = 0;
-                    } elseif ($choice === "email") {
-                        $verification_method = 1;
+                    if ($privateApi) {
+                        $ig->challengePrivate($response);
                     } else {
-                        self::log("Suspicious Login: Aborting!");
-                        exit(1);
-                    }
-
-                    /** @noinspection PhpUndefinedMethodInspection */
-                    $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
-                    $customResponse = $ig->request($checkApiPath)
-                        ->setNeedsAuth(false)
-                        ->addPost('choice', $verification_method)
-                        ->addPost('guid', $ig->uuid)
-                        ->addPost('device_id', $ig->device_id)
-                        ->addPost('_csrftoken', $ig->client->getToken())
-                        ->getDecodedResponse();
-
-                    try {
-                        if ($customResponse['status'] === 'ok' && isset($customResponse['action']) && $customResponse['action'] === 'close') {
-                            self::log("Suspicious Login: Account challenge unsuccessful!");
-                            exit(1);
-                        }
-
-                        self::log("Suspicious Login: Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
-                        $cCode = self::promptInput();
-                        $ig->changeUser($username, $password);
-                        $response = $ig->request($checkApiPath)
-                            ->setNeedsAuth(false)
-                            ->addPost('security_code', $cCode)
-                            ->addPost('guid', $ig->uuid)
-                            ->addPost('device_id', $ig->device_id)
-                            ->addPost('_csrftoken', $ig->client->getToken())
-                            ->getDecodedResponse();
-                        if (!isset($response['logged_in_user']) || !isset($response['logged_in_user']['pk'])) {
-                            self::log("Suspicious Login: Checkpoint likely failed, re-run script.");
-                            exit(1);
-                        }
-                        $ig->updateLoginState((string)$response['logged_in_user']['pk']);
-                        $ig->sendLoginFlow();
-                        self::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
-                    } catch (Exception $ex) {
-                        self::log("Suspicious Login: Account Challenge Failed :(.");
-                        self::dump($ex->getMessage());
-                        exit(1);
+                        $ig->challengePublic($response, $username, $password);
                     }
                 } else {
                     self::log("Error while logging into Instagram: " . $e->getMessage());
@@ -363,5 +332,127 @@ class ExtendedInstagram extends Instagram
     public function sendLoginFlow()
     {
         $this->_sendLoginFlow(true);
+    }
+
+    public function challengePublic($response, $username, $password)
+    {
+        Utils::log("Suspicious Login: Please select your verification option by typing \"sms\" or \"email\" respectively. Otherwise press enter to abort.");
+        $choice = Utils::promptInput();
+        if ($choice === "sms") {
+            $verification_method = 0;
+        } elseif ($choice === "email") {
+            $verification_method = 1;
+        } else {
+            Utils::log("Suspicious Login: Aborting!");
+            exit(1);
+        }
+
+        /** @noinspection PhpUndefinedMethodInspection */
+        $checkApiPath = trim(substr($response->getChallenge()->getApiPath(), 1));
+        $customResponse = $this->request($checkApiPath)
+            ->setNeedsAuth(false)
+            ->addPost('choice', $verification_method)
+            ->addPost('guid', $this->uuid)
+            ->addPost('device_id', $this->device_id)
+            ->addPost('_csrftoken', $this->client->getToken())
+            ->getDecodedResponse();
+
+        try {
+            if ($customResponse['status'] === 'ok' && isset($customResponse['action']) && $customResponse['action'] === 'close') {
+                Utils::log("Suspicious Login: Account challenge unsuccessful!");
+                exit(1);
+            }
+
+            Utils::log("Suspicious Login: Please enter the code you received via " . ($verification_method ? 'email' : 'sms') . "...");
+            $cCode = Utils::promptInput();
+            $this->changeUser($username, $password);
+            $response = $this->request($checkApiPath)
+                ->setNeedsAuth(false)
+                ->addPost('security_code', $cCode)
+                ->addPost('guid', $this->uuid)
+                ->addPost('device_id', $this->device_id)
+                ->addPost('_csrftoken', $this->client->getToken())
+                ->getDecodedResponse();
+            if (!isset($response['logged_in_user']) || !isset($response['logged_in_user']['pk'])) {
+                Utils::log("Suspicious Login: Checkpoint likely failed, re-run script.");
+                exit(1);
+            }
+            $this->updateLoginState((string)$response['logged_in_user']['pk']);
+            $this->sendLoginFlow();
+            Utils::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
+        } catch (Exception $ex) {
+            Utils::log("Suspicious Login: Account Challenge Failed :(.");
+            Utils::dump($ex->getMessage());
+            exit(1);
+        }
+    }
+
+    /**
+     * This adds support for Instagram-API's private code subscription.
+     *
+     * @see https://github.com/mgp25/Instagram-API/issues/2655
+     */
+    public function challengePrivate($response)
+    {
+        $iterations = 0;
+        /** @noinspection PhpUndefinedMethodInspection */
+        $checkApiPath = substr($response->getChallenge()->getApiPath(), 1);
+        $challengeEx = null;
+        while (true) {
+            try {
+                /** @noinspection PhpUndefinedClassInspection */
+                if (++$iterations >= InstagramAPI\Request\Checkpoint::MAX_CHALLENGE_ITERATIONS) {
+                    /** @noinspection PhpUndefinedClassInspection */
+                    throw new InstagramAPI\Exception\Checkpoint\ChallengeIterationsLimitException();
+                }
+                switch (true) {
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\ChallengeRequiredException:
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $this->checkpoint->sendChallenge($checkApiPath);
+                    break;
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\SelectVerifyMethodException:
+                    /** @noinspection PhpUndefinedMethodInspection */
+                    if ($challengeEx->getResponse()->getStepData()->getPhoneNumber() !== null) {
+                        $method = 0;
+                    } else {
+                        $method = 1;
+                    }
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $this->checkpoint->requestVerificationCode($checkApiPath, $method);
+                    break;
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\VerifyCodeException:
+                    Utils::log("Suspicious Login: Please enter the code you received...");
+                    $cCode = Utils::promptInput();
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $challenge = $this->checkpoint->sendVerificationCode($checkApiPath, $cCode);
+                    /** @noinspection PhpUndefinedMethodInspection */
+                    $this->finishCheckpoint($challenge);
+                    Utils::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
+                    break 2;
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\SubmitPhoneException:
+                    Utils::log("Suspicious Login: Please enter enter the phone number on the account for verification...");
+                    $phone = Utils::promptInput();
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $this->checkpoint->sendVerificationPhone($checkApiPath, $phone);
+                    break;
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\SubmitEmailException:
+                    Utils::log("Suspicious Login: Please enter enter the email address on the account for verification...");
+                    $email = Utils::promptInput();
+                    /** @noinspection PhpUndefinedFieldInspection */
+                    $this->checkpoint->sendVerificationEmail($checkApiPath, $email);
+                    break;
+                    default:
+                        Utils::log("Suspicious Login: Reached unknown challenge step :(.");
+                        Utils::dump();
+                        exit(1);
+                }
+            } /** @noinspection PhpUndefinedClassInspection */ catch (InstagramAPI\Exception\Checkpoint\ChallengeIterationsLimitException $ex) {
+                Utils::log("Suspicious Login: Account Challenge Failed :(.");
+                Utils::dump($ex->getMessage());
+                exit(1);
+            } catch (Exception $ex) {
+                $challengeEx = $ex;
+            }
+        }
     }
 }
