@@ -523,7 +523,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
         $process = proc_open($cmd, array(), $pipe);
         $pid = intval(proc_get_status($process)['pid']);
         if (Utils::isWindows()) {
-            $wmic = array_filter(explode(" ", shell_exec("wmic process get parentprocessid,processid | find \"".$pid."\"")));
+            $wmic = array_filter(explode(" ", shell_exec("wmic process get parentprocessid,processid | find \"" . $pid . "\"")));
             array_pop($wmic);
             $pid = end($wmic);
         } else {
@@ -746,107 +746,107 @@ function legacyLivestreamingFlow($live, $broadcastId, $streamUrl, $streamKey, $o
     $line = Utils::promptInput();
     switch ($line) {
         case 'ecomments':
-            {
-                $live->enableComments($broadcastId);
-                Utils::log("Enabled Comments!");
-                break;
-            }
+        {
+            $live->enableComments($broadcastId);
+            Utils::log("Enabled Comments!");
+            break;
+        }
         case 'dcomments':
-            {
-                $live->disableComments($broadcastId);
-                Utils::log("Disabled Comments!");
-                break;
-            }
+        {
+            $live->disableComments($broadcastId);
+            Utils::log("Disabled Comments!");
+            break;
+        }
         case 'stop':
         case 'end':
-            {
-                endLivestreamFlow($live->ig, $broadcastId, '', $obsAuto, $helper, 0, 0, 0, 0, false);
-                $archived = "yes";
-                if (!autoArchive && !autoDiscard) {
-                    Utils::log("Livestream: Would you like to archive this stream?");
-                    $archived = Utils::promptInput();
-                }
-                if (autoArchive || $archived == 'yes' && !autoDiscard) {
-                    $live->addToPostLive($broadcastId);
-                    Utils::log("Livestream: Added livestream to archive!");
-                }
-                exit(0);
-                break;
+        {
+            endLivestreamFlow($live->ig, $broadcastId, '', $obsAuto, $helper, 0, 0, 0, 0, false);
+            $archived = "yes";
+            if (!autoArchive && !autoDiscard) {
+                Utils::log("Livestream: Would you like to archive this stream?");
+                $archived = Utils::promptInput();
             }
+            if (autoArchive || $archived == 'yes' && !autoDiscard) {
+                $live->addToPostLive($broadcastId);
+                Utils::log("Livestream: Added livestream to archive!");
+            }
+            exit(0);
+            break;
+        }
         case 'url':
-            {
-                Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
-                break;
-            }
+        {
+            Utils::log("================================ Stream URL ================================\n" . $streamUrl . "\n================================ Stream URL ================================");
+            break;
+        }
         case 'key':
-            {
-                Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
-                if (Utils::isWindows()) {
-                    shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
-                    Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
-                }
-                break;
+        {
+            Utils::log("======================== Current Stream Key ========================\n" . $streamKey . "\n======================== Current Stream Key ========================");
+            if (Utils::isWindows()) {
+                shell_exec("echo " . Utils::sanitizeStreamKey($streamKey) . " | clip");
+                Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
             }
+            break;
+        }
         case 'info':
-            {
-                $info = $live->getInfo($broadcastId);
-                $status = $info->getStatus();
-                $muted = var_export($info->is_Messages(), true);
-                $count = $info->getViewerCount();
-                Utils::log("Info:\nStatus: $status\nMuted: $muted\nViewer Count: $count");
-                break;
-            }
+        {
+            $info = $live->getInfo($broadcastId);
+            $status = $info->getStatus();
+            $muted = var_export($info->is_Messages(), true);
+            $count = $info->getViewerCount();
+            Utils::log("Info:\nStatus: $status\nMuted: $muted\nViewer Count: $count");
+            break;
+        }
         case 'viewers':
-            {
-                Utils::log("Viewers:");
-                $live->getInfo($broadcastId);
-                $vCount = 0;
-                foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
-                    Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
-                    $vCount++;
-                }
-                if ($vCount > 0) {
-                    Utils::log("Total Viewers: " . $vCount);
-                } else {
-                    Utils::log("There are no live viewers.");
-                }
-                break;
+        {
+            Utils::log("Viewers:");
+            $live->getInfo($broadcastId);
+            $vCount = 0;
+            foreach ($live->getViewerList($broadcastId)->getUsers() as &$cuser) {
+                Utils::log("[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n");
+                $vCount++;
             }
+            if ($vCount > 0) {
+                Utils::log("Total Viewers: " . $vCount);
+            } else {
+                Utils::log("There are no live viewers.");
+            }
+            break;
+        }
         case 'wave':
-            {
-                Utils::log("Please enter the user id you would like to wave at.");
-                $viewerId = Utils::promptInput();
-                try {
-                    $live->wave($broadcastId, $viewerId);
-                    Utils::log("Waved at a user!");
-                } catch (Exception $waveError) {
-                    Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
-                    Utils::dump($waveError->getMessage());
-                }
-                break;
+        {
+            Utils::log("Please enter the user id you would like to wave at.");
+            $viewerId = Utils::promptInput();
+            try {
+                $live->wave($broadcastId, $viewerId);
+                Utils::log("Waved at a user!");
+            } catch (Exception $waveError) {
+                Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
+                Utils::dump($waveError->getMessage());
             }
+            break;
+        }
         case 'comment':
-            {
-                Utils::log("Please enter the text you wish to comment.");
-                $text = Utils::promptInput();
-                if ($text !== "") {
-                    $live->comment($broadcastId, $text);
-                    Utils::log("Commented on stream!");
-                } else {
-                    Utils::log("Comments may not be empty!");
-                }
-                break;
+        {
+            Utils::log("Please enter the text you wish to comment.");
+            $text = Utils::promptInput();
+            if ($text !== "") {
+                $live->comment($broadcastId, $text);
+                Utils::log("Commented on stream!");
+            } else {
+                Utils::log("Comments may not be empty!");
             }
+            break;
+        }
         case 'help':
-            {
-                Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
-                break;
-            }
+        {
+            Utils::log("Commands:\nhelp - Prints this message\nurl - Prints Stream URL\nkey - Prints Stream Key\ninfo - Grabs Stream Info\nviewers - Grabs Stream Viewers\necomments - Enables Comments\ndcomments - Disables Comments\ncomment - Leaves a comment on your stream\nwave - Waves at a User\nstop - Stops the Live Stream");
+            break;
+        }
         default:
-            {
-                Utils::log("Invalid Command. Type \"help\" for help!");
-                break;
-            }
+        {
+            Utils::log("Invalid Command. Type \"help\" for help!");
+            break;
+        }
     }
     legacyLivestreamingFlow($live, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper);
 }
