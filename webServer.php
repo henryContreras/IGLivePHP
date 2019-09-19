@@ -66,7 +66,7 @@ if ($requestUri === '/static/script.js') {
         following contributors and open-source software(s):</p>
     <ul class="br-20 b-none w-100 p-20 o-none">
         <li><a target="_blank" href="https://github.com/JRoy">JRoy</a> - Backend</li>
-        <li><a target="_blank" href="https://www.instagram.com/teenproblems.ig">Eenjesta</a> - Frontend/Design</li>
+        <li><a target="_blank" href="https://www.instagram.com/eenjesta">Eenjesta</a> - Frontend/Design</li>
         <li><a target="_blank" href="https://fontawesome.com/">Font Awesome</a></li>
         <li><a target="_blank" href="https://jquery.com/">jQuery</a></li>
     </ul>
