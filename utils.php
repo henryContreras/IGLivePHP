@@ -397,7 +397,7 @@ class ExtendedInstagram extends Instagram
         $iterations = 0;
         /** @noinspection PhpUndefinedMethodInspection */
         $checkApiPath = substr($response->getChallenge()->getApiPath(), 1);
-        $e = null;
+        $challengeEx = null;
         while (true) {
             try {
                 /** @noinspection PhpUndefinedClassInspection */
@@ -406,13 +406,13 @@ class ExtendedInstagram extends Instagram
                     throw new InstagramAPI\Exception\Checkpoint\ChallengeIterationsLimitException();
                 }
                 switch (true) {
-                    /** @noinspection PhpUndefinedClassInspection */ case $e instanceof InstagramAPI\Exception\Checkpoint\ChallengeRequiredException:
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\ChallengeRequiredException:
                     /** @noinspection PhpUndefinedFieldInspection */
                     $this->checkpoint->sendChallenge($checkApiPath);
                     break;
-                    /** @noinspection PhpUndefinedClassInspection */ case $e instanceof InstagramAPI\Exception\Checkpoint\SelectVerifyMethodException:
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\SelectVerifyMethodException:
                     /** @noinspection PhpUndefinedMethodInspection */
-                    if ($e->getResponse()->getStepData()->getPhoneNumber() !== null) {
+                    if ($challengeEx->getResponse()->getStepData()->getPhoneNumber() !== null) {
                         $method = 0;
                     } else {
                         $method = 1;
@@ -420,7 +420,7 @@ class ExtendedInstagram extends Instagram
                     /** @noinspection PhpUndefinedFieldInspection */
                     $this->checkpoint->requestVerificationCode($checkApiPath, $method);
                     break;
-                    /** @noinspection PhpUndefinedClassInspection */ case $e instanceof InstagramAPI\Exception\Checkpoint\VerifyCodeException:
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\VerifyCodeException:
                     Utils::log("Suspicious Login: Please enter the code you received...");
                     $cCode = Utils::promptInput();
                     /** @noinspection PhpUndefinedFieldInspection */
@@ -429,13 +429,13 @@ class ExtendedInstagram extends Instagram
                     $this->finishCheckpoint($challenge);
                     Utils::log("Suspicious Login: Attempted to bypass checkpoint, good luck!");
                     break 2;
-                    /** @noinspection PhpUndefinedClassInspection */ case $e instanceof InstagramAPI\Exception\Checkpoint\SubmitPhoneException:
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\SubmitPhoneException:
                     Utils::log("Suspicious Login: Please enter enter the phone number on the account for verification...");
                     $phone = Utils::promptInput();
                     /** @noinspection PhpUndefinedFieldInspection */
                     $this->checkpoint->sendVerificationPhone($checkApiPath, $phone);
                     break;
-                    /** @noinspection PhpUndefinedClassInspection */ case $e instanceof InstagramAPI\Exception\Checkpoint\SubmitEmailException:
+                    /** @noinspection PhpUndefinedClassInspection */ case $challengeEx instanceof InstagramAPI\Exception\Checkpoint\SubmitEmailException:
                     Utils::log("Suspicious Login: Please enter enter the email address on the account for verification...");
                     $email = Utils::promptInput();
                     /** @noinspection PhpUndefinedFieldInspection */
@@ -451,7 +451,7 @@ class ExtendedInstagram extends Instagram
                 Utils::dump($ex->getMessage());
                 exit(1);
             } catch (Exception $ex) {
-                $e = $ex;
+                $challengeEx = $ex;
             }
         }
     }
