@@ -242,7 +242,7 @@ registerCommand($commandData, 'block', function (StreamTick $tick) {
     @$tick->ig->people->block($userId);
     return "Blocked a user!";
 });
-Utils::log("Commands: Registered commands!");
+Utils::log("Commands: Registered " . count($commandData) . " commands!");
 
 //Parse special command line arguments
 $streamTotalSec = 0;
