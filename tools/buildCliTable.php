@@ -1,7 +1,7 @@
 <?php
 /** @noinspection PhpComposerExtensionStubsInspection */
 
-if (!file_exists(__DIR__ . '/../utils.php') || !file_exists(__DIR__ . '/../utils.php')) {
+if (!file_exists(__DIR__ . '/../utils.php') || !file_exists(__DIR__ . '/../goLive.php')) {
     echo 'Missing utils.php or goLive.php from parent directory';
     exit(1);
 }
