@@ -512,7 +512,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
     if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
         Utils::log("Command Line: To start the new command line, please run the commandLine.php script.");
-    } elseif ($console) {
+    } elseif (true) {
         $consoleCommand = PHP_BINARY . (Utils::isWindows() ? "\" " : (Utils::isMac() ? (" " . __DIR__ . "/") : "")) . "commandLine.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "");
         if (webMode) {
             $consoleCommand = PHP_BINARY . (Utils::isWindows() ? "\"" : "") . " -S " . WEB_HOST . ":" . WEB_PORT . " " . (Utils::isMac() ? __DIR__ . "/" : "") . "webServer.php" . (autoArchive === true ? " -a" : "") . (autoDiscard === true ? " -d" : "");
@@ -917,10 +917,10 @@ function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid
     Utils::deleteRecovery();
     @unlink(__DIR__ . '/request');
     @unlink(__DIR__ . '/webLink.json');
+    if (intval($pid) !== 0) {
+        Utils::killPid($pid);
+    }
     if ($exit) {
-        if (intval($pid) !== 0) {
-            Utils::killPid($pid);
-        }
         Utils::log("Goodbye: Thanks for streaming with InstagramLive-PHP! Consider donating @ https://www.paypal.me/JoshuaRoy1 <3");
         sleep(2);
         exit(0);
