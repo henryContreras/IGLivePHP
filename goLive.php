@@ -45,10 +45,146 @@ registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump
 registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
 registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
 registerArgument($helpData, $argv, "dumpCli", "", "Dumps current command-line arguments into json.", "-dumpCli");
+registerArgument($helpData, $argv, "dumpCmds", "", "Dumps current commands into json.", "-dumpCmds");
+
+//Parse special command line arguments
+$streamTotalSec = 0;
+$autoPin = null;
+foreach ($argv as $curArg) {
+    if (strpos($curArg, '--stream-sec=') !== false) {
+        $streamTotalSec = (int)str_replace('--stream-sec=', '', $curArg);
+    }
+    if (strpos($curArg, '--auto-pin=') !== false) {
+        $autoPin = str_replace('_', ' ', str_replace('--auto-pin=', '', $curArg));
+    }
+}
+
+//Register commands
+$commandData = [];
+$commandInfo = [];
+registerCommand($commandData, $commandInfo, 'ecomments', "Enables comments", "", function (StreamTick $tick) {
+    $tick->ig->live->enableComments($tick->broadcastId);
+    return "Enabled Comments.";
+});
+registerCommand($commandData, $commandInfo, 'dcomments', "Disables comments", "", function (StreamTick $tick) {
+    $tick->ig->live->disableComments($tick->broadcastId);
+    return "Disabled Comments.";
+});
+registerCommand($commandData, $commandInfo, 'end', "Ends the livestream", "(yes/no) Archive Stream", function (StreamTick $tick) {
+    endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper, $tick->pid, $tick->commentCount, $tick->likeCount, $tick->burstLikeCount);
+});
+registerCommand($commandData, $commandInfo, 'pin', "Pins a comment", "Comment ID", function (StreamTick $tick) {
+    $commentId = $tick->values[0];
+    if (strlen($commentId) === 17 && //Comment IDs are 17 digits
+        is_numeric($commentId) && //Comment IDs only contain numbers
+        strpos($commentId, '-') === false) { //Comment IDs are not negative
+        $tick->ig->live->pinComment($tick->broadcastId, $commentId);
+        return "Pinned a comment!";
+    } else {
+        var_dump($tick->values);
+        return "You entered an invalid comment id!";
+    }
+}, false);
+registerCommand($commandData, $commandInfo, 'unpin', "Unpins the currently pinned comment", "", function (StreamTick $tick) {
+    if ($tick->lastCommentPin == -1) {
+        return "You have no comment pinned!";
+    } else {
+        $tick->ig->live->unpinComment($tick->broadcastId, $tick->lastCommentPin);
+        return "Unpinned the pinned comment!";
+    }
+});
+registerCommand($commandData, $commandInfo, 'pinned', "Displays the currently pinned comment", "", function (StreamTick $tick) {
+    if ($tick->lastCommentPin == -1) {
+        return "There is no comment pinned!";
+    } else {
+        return "Pinned Comment:\n @" . $tick->lastCommentPinHandle . ': ' . $tick->lastCommentPinText;
+    }
+});
+registerCommand($commandData, $commandInfo, 'comment', "Posts a comment on the stream", "Comment Text", function (StreamTick $tick) {
+    $text = $tick->values[0];
+    if ($text !== "") {
+        $tick->ig->live->comment($tick->broadcastId, $text);
+        return "Commented on stream!";
+    } else {
+        return "Comments may not be empty!";
+    }
+});
+registerCommand($commandData, $commandInfo, 'url', "Displays the stream url", "", function (StreamTick $tick) {
+    return "================================ Stream URL ================================\n" . $tick->streamUrl . "\n================================ Stream URL ================================";
+});
+registerCommand($commandData, $commandInfo, 'key', "Displays the stream key", "", function (StreamTick $tick) {
+    if (Utils::isWindows()) {
+        shell_exec("echo " . Utils::sanitizeStreamKey($tick->streamKey) . " | clip");
+        Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
+    }
+    return "======================== Current Stream Key ========================\n" . $tick->streamKey . "\n======================== Current Stream Key ========================";
+});
+registerCommand($commandData, $commandInfo, 'info', "Displays general info about the stream", "", function (StreamTick $tick) {
+    return "Info:\nStatus: $tick->broadcastStatus\nTop Live Eligible: " . ($tick->topLiveEligible === 1 ? "true" : "false") . "\nViewer Count: $tick->viewerCount\nTotal Unique Viewer Count: $tick->totalViewerCount";
+});
+registerCommand($commandData, $commandInfo, 'viewers', "Displays the list of people viewing the stream", "", function (StreamTick $tick) {
+    $response = "Viewers:\n";
+    $info = $tick->ig->live->getInfo($tick->broadcastId);
+    foreach ($tick->ig->live->getViewerList($tick->broadcastId)->getUsers() as &$cuser) {
+        $response = $response . "[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n";
+    }
+    if ($info->getViewerCount() > 0) {
+        return $response . "Total Viewers: " . $info->getViewerCount();
+    } else {
+        return $response . "There are no live viewers.";
+    }
+});
+registerCommand($commandData, $commandInfo, 'questions', "Displays all questions from the stream", "", function (StreamTick $tick) {
+    $response = "Questions:\n";
+    foreach ($tick->ig->live->getLiveBroadcastQuestions($tick->broadcastId)->getQuestions() as $cquestion) {
+        $response = $response . "[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText();
+    }
+    return $response;
+});
+registerCommand($commandData, $commandInfo, 'showquestion', "Shows a question on the stream", "Question ID", function (StreamTick $tick) {
+    $questionId = $tick->values[0];
+    if (strlen($questionId) === 17 && //Question IDs are 17 digits
+        is_numeric($questionId) && //Question IDs only contain numbers
+        strpos($questionId, '-') === false) { //Question IDs are not negative
+        $tick->lastQuestion = $questionId;
+        $tick->ig->live->showQuestion($tick->broadcastId, $questionId);
+        return "Displayed question!";
+    } else {
+        return "Invalid question id!";
+    }
+});
+registerCommand($commandData, $commandInfo, 'hidequestion', "Hides the currently hidden question from the stream", "", function (StreamTick $tick) {
+    if ($tick->lastQuestion == -1) {
+        return "There is no question displayed!";
+    } else {
+        $tick->ig->live->hideQuestion($tick->broadcastId, $tick->lastQuestion);
+        $tick->lastQuestion = -1;
+        return "Removed the displayed question!";
+    }
+});
+registerCommand($commandData, $commandInfo, 'wave', "Waves at a user who has joined the stream", "User ID", function (StreamTick $tick) {
+    $viewerId = $tick->values[0];
+    try {
+        @$tick->ig->live->wave($tick->broadcastId, $viewerId);
+        return "Waved at a user!";
+    } catch (Exception $waveError) {
+        return "User does not exist or user has already been waved at.";
+    }
+});
+registerCommand($commandData, $commandInfo, 'block', "Blocks a user from your account", "User ID", function (StreamTick $tick) {
+    $userId = $tick->values[0];
+    @$tick->ig->people->block($userId);
+    return "Blocked a user!";
+});
 
 //Dump json-encoded command line arguments
 if (dumpCli) {
     print json_encode($helpData);
+    exit(0);
+}
+
+if (dumpCmds) {
+    print json_encode($commandInfo);
     exit(0);
 }
 
@@ -122,139 +258,6 @@ use InstagramAPI\Response\FinalViewerListResponse;
 use InstagramAPI\Response\GenericResponse;
 use InstagramAPI\Response\Model\Comment;
 use InstagramAPI\Signatures;
-
-//Register commands
-Utils::log("Commands: Registering commands...");
-$commandData = [];
-registerCommand($commandData, 'ecomments', function (StreamTick $tick) {
-    $tick->ig->live->enableComments($tick->broadcastId);
-    return "Enabled Comments.";
-});
-registerCommand($commandData, 'dcomments', function (StreamTick $tick) {
-    $tick->ig->live->disableComments($tick->broadcastId);
-    return "Disabled Comments.";
-});
-registerCommand($commandData, 'end', function (StreamTick $tick) {
-    endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper, $tick->pid, $tick->commentCount, $tick->likeCount, $tick->burstLikeCount);
-});
-registerCommand($commandData, 'pin', function (StreamTick $tick) {
-    $commentId = $tick->values[0];
-    if (strlen($commentId) === 17 && //Comment IDs are 17 digits
-        is_numeric($commentId) && //Comment IDs only contain numbers
-        strpos($commentId, '-') === false) { //Comment IDs are not negative
-        $tick->ig->live->pinComment($tick->broadcastId, $commentId);
-        return "Pinned a comment!";
-    } else {
-        var_dump($tick->values);
-        return "You entered an invalid comment id!";
-    }
-});
-registerCommand($commandData, 'unpin', function (StreamTick $tick) {
-    if ($tick->lastCommentPin == -1) {
-        return "You have no comment pinned!";
-    } else {
-        $tick->ig->live->unpinComment($tick->broadcastId, $tick->lastCommentPin);
-        return "Unpinned the pinned comment!";
-    }
-});
-registerCommand($commandData, 'pinned', function (StreamTick $tick) {
-    if ($tick->lastCommentPin == -1) {
-        return "There is no comment pinned!";
-    } else {
-        return "Pinned Comment:\n @" . $tick->lastCommentPinHandle . ': ' . $tick->lastCommentPinText;
-    }
-});
-registerCommand($commandData, 'comment', function (StreamTick $tick) {
-    $text = $tick->values[0];
-    if ($text !== "") {
-        $tick->ig->live->comment($tick->broadcastId, $text);
-        return "Commented on stream!";
-    } else {
-        return "Comments may not be empty!";
-    }
-});
-registerCommand($commandData, 'url', function (StreamTick $tick) {
-    return "================================ Stream URL ================================\n" . $tick->streamUrl . "\n================================ Stream URL ================================";
-});
-registerCommand($commandData, 'key', function (StreamTick $tick) {
-    if (Utils::isWindows()) {
-        shell_exec("echo " . Utils::sanitizeStreamKey($tick->streamKey) . " | clip");
-        Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
-    }
-    return "======================== Current Stream Key ========================\n" . $tick->streamKey . "\n======================== Current Stream Key ========================";
-});
-registerCommand($commandData, 'info', function (StreamTick $tick) {
-    return "Info:\nStatus: $tick->broadcastStatus\nTop Live Eligible: " . ($tick->topLiveEligible === 1 ? "true" : "false") . "\nViewer Count: $tick->viewerCount\nTotal Unique Viewer Count: $tick->totalViewerCount";
-});
-registerCommand($commandData, 'viewers', function (StreamTick $tick) {
-    $response = "Viewers:\n";
-    $tick->ig->live->getInfo($tick->broadcastId);
-    $vCount = 0;
-    foreach ($tick->ig->live->getViewerList($tick->broadcastId)->getUsers() as &$cuser) {
-        $response = $response . "[" . $cuser->getPk() . "] @" . $cuser->getUsername() . " (" . $cuser->getFullName() . ")\n";
-        $vCount++;
-    }
-    if ($vCount > 0) {
-        return $response . "Total Viewers: " . $vCount;
-    } else {
-        return $response . "There are no live viewers.";
-    }
-});
-registerCommand($commandData, 'questions', function (StreamTick $tick) {
-    $response = "Questions:\n";
-    foreach ($tick->ig->live->getLiveBroadcastQuestions($tick->broadcastId)->getQuestions() as $cquestion) {
-        $response = $response . "[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText();
-    }
-    return $response;
-});
-registerCommand($commandData, 'showquestion', function (StreamTick $tick) {
-    $questionId = $tick->values[0];
-    if (strlen($questionId) === 17 && //Question IDs are 17 digits
-        is_numeric($questionId) && //Question IDs only contain numbers
-        strpos($questionId, '-') === false) { //Question IDs are not negative
-        $tick->lastQuestion = $questionId;
-        $tick->ig->live->showQuestion($tick->broadcastId, $questionId);
-        return "Displayed question!";
-    } else {
-        return "Invalid question id!";
-    }
-});
-registerCommand($commandData, 'hidequestion', function (StreamTick $tick) {
-    if ($tick->lastQuestion == -1) {
-        return "There is no question displayed!";
-    } else {
-        $tick->ig->live->hideQuestion($tick->broadcastId, $tick->lastQuestion);
-        $tick->lastQuestion = -1;
-        return "Removed the displayed question!";
-    }
-});
-registerCommand($commandData, 'wave', function (StreamTick $tick) {
-    $viewerId = $tick->values[0];
-    try {
-        @$tick->ig->live->wave($tick->broadcastId, $viewerId);
-        return "Waved at a user!";
-    } catch (Exception $waveError) {
-        return "User does not exist or user has already been waved at.";
-    }
-});
-registerCommand($commandData, 'block', function (StreamTick $tick) {
-    $userId = $tick->values[0];
-    @$tick->ig->people->block($userId);
-    return "Blocked a user!";
-});
-Utils::log("Commands: Registered " . count($commandData) . " commands!");
-
-//Parse special command line arguments
-$streamTotalSec = 0;
-$autoPin = null;
-foreach ($argv as $curArg) {
-    if (strpos($curArg, '--stream-sec=') !== false) {
-        $streamTotalSec = (int)str_replace('--stream-sec=', '', $curArg);
-    }
-    if (strpos($curArg, '--auto-pin=') !== false) {
-        $autoPin = str_replace('_', ' ', str_replace('--auto-pin=', '', $curArg));
-    }
-}
 
 //Run preparation flow
 preparationFlow(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs, (!obsNoIni && OBS_MODIFY_SETTINGS)), $argv, $commandData, $streamTotalSec, $autoPin);
@@ -978,12 +981,22 @@ function registerArgument(&$helpData, $argv, $name, $humanName, $description, $t
 /**
  * Registers a callable into the command data map.
  * @param array $commandData Target command map.
+ * @param array $commandInfo Target command info map.
  * @param string $commandName Name of command.
+ * @param string $description Description of command.
+ * @param string $argument Argument of command.
  * @param callable $onCommand Callable to execute when the command is run.
+ * @param bool $auto If true, command will be automatically handled.
  */
-function registerCommand(&$commandData, $commandName, $onCommand)
+function registerCommand(&$commandData, &$commandInfo, $commandName, $description, $argument, $onCommand, $auto = true)
 {
     $commandData[$commandName] = $onCommand;
+    array_push($commandInfo, json_encode([
+        'name' => $commandName,
+        'description' => $description,
+        'argument' => $argument,
+        'auto' => $auto
+    ]));
 }
 
 class StreamTick
