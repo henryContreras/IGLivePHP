@@ -37,6 +37,13 @@ class Utils
             return false;
         }
 
+        //Don't override private API
+        foreach (@json_decode(file_get_contents('composer.json'), true)['require'] as $key => $value) {
+            if (strpos($key, '-private/instagram') !== false) {
+                return true;
+            }
+        }
+
         $pass = false;
         foreach (@json_decode(file_get_contents('composer.lock'), true)['packages'] as $package) {
             if (@$package['name'] === 'mgp25/instagram-php' &&
