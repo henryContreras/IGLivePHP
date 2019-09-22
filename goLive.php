@@ -260,18 +260,17 @@ use InstagramAPI\Response\Model\Comment;
 use InstagramAPI\Signatures;
 
 //Run preparation flow
-preparationFlow(true, new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs, (!obsNoIni && OBS_MODIFY_SETTINGS)), $argv, $commandData, $streamTotalSec, $autoPin);
+preparationFlow(new ObsHelper(!obsNoStream, disableObsAutomation, forceSlobs, (!obsNoIni && OBS_MODIFY_SETTINGS)), $argv, $commandData, $streamTotalSec, $autoPin);
 
 /**
  * Runs the preparation code such as logging in and creating the stream.
- * @param bool $console True if the script should spawn a new console on windows & mac.
  * @param ObsHelper $helper The ObsHelper object used for obs actions.
  * @param array $args The array of arguments passed to the script.
  * @param array $commandData The array of commands registered.
  * @param int $streamTotalSec The amount of time to cap the stream at. 0 if no cap.
  * @param string|null $autoPin The comment to auto pin the stream
  */
-function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec = 0, $autoPin = null)
+function preparationFlow($helper, $args, $commandData, $streamTotalSec = 0, $autoPin = null)
 {
     //Ensure that static files are here in webMode
     if (webMode && !file_exists('static/')) {
@@ -474,7 +473,7 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
                 $startingQuestion = $recoveryData['lastQuestion'];
                 $startingTime = $recoveryData['startTime'];
             }
-            livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args, $commandData, $startCommentTs, $startLikeTs, $startingQuestion, $startingTime);
+            livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper, $streamTotalSec, $autoPin, $args, $commandData, $startCommentTs, $startLikeTs, $startingQuestion, $startingTime);
         } else {
             Utils::log("Command Line: Linux Detected! The script has entered legacy mode. Please use Windows or macOS for all the latest features.");
             legacyLivestreamingFlow($ig->live, $broadcastId, $streamUrl, $streamKey, $obsAutomation, $helper);
@@ -495,7 +494,6 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
  * @param string $broadcastId Livestream broadcast id.
  * @param string $streamUrl Livestream stream url.
  * @param string $streamKey Livestream stream key.
- * @param bool $console True if the script should spawn a new console on windows & mac.
  * @param bool $obsAuto True if obs automation is enabled.
  * @param ObsHelper $helper The ObsHelper object.
  * @param int $streamTotalSec The amount of time to cap the stream at. 0 if no cap.
@@ -507,7 +505,7 @@ function preparationFlow($console, $helper, $args, $commandData, $streamTotalSec
  * @param int $startingQuestion
  * @param int $startingTime
  */
-function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, $obsAuto, $helper, $streamTotalSec, $autoPin, $args, $commandData, $startCommentTs = 0, $startLikeTs = 0, $startingQuestion = -1, $startingTime = -1)
+function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $obsAuto, $helper, $streamTotalSec, $autoPin, $args, $commandData, $startCommentTs = 0, $startLikeTs = 0, $startingQuestion = -1, $startingTime = -1)
 {
     if (bypassCheck && !Utils::isMac() && !Utils::isWindows()) {
         Utils::log("Command Line: You are forcing the new command line. This is unsupported and may result in issues.");
@@ -710,7 +708,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
             if ($restart == 'yes') {
                 Utils::log("Livestream: Restarting livestream!");
                 Utils::deleteRecovery();
-                preparationFlow(false, $helper, $args, $commandData, $streamTotalSec, $autoPin);
+                preparationFlow($helper, $args, $commandData, $streamTotalSec, $autoPin);
             }
             Utils::log("Command Line: Please close the console window!");
             sleep(2);
