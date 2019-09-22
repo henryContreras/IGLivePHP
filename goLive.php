@@ -15,36 +15,36 @@ define("scriptFlavor", "custom");
 
 //Command Line Argument Registration
 $helpData = [];
-$helpData = registerArgument($helpData, $argv, "help", "Help", "Displays this message.", "h", "help");
-$helpData = registerArgument($helpData, $argv, "bypassCheck", "Bypass OS Check", "Bypasses the operating system check. Please do not use this if don't know what you're doing!", "b", "bypass-check");
-$helpData = registerArgument($helpData, $argv, "forceLegacy", "Force Legacy Mode", "Forces legacy mode for Windows & Mac users.", "l", "force-legacy");
-$helpData = registerArgument($helpData, $argv, "bypassCutoff", "Bypass Cutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
-$helpData = registerArgument($helpData, $argv, "infiniteStream", "Infinite Stream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
-$helpData = registerArgument($helpData, $argv, "autoArchive", "Auto Archive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
-$helpData = registerArgument($helpData, $argv, "autoDiscard", "Auto Discard", "Automatically discards a live stream after it ends.", "d", "auto-discard");
-$helpData = registerArgument($helpData, $argv, "logCommentOutput", "Log Comment Output", "Logs comment and like output into a text file.", "o", "comment-output");
-$helpData = registerArgument($helpData, $argv, "obsAutomationAccept", "Accept OBS Automation Prompt", "Automatically accepts the OBS prompt.", "-obs");
-$helpData = registerArgument($helpData, $argv, "obsNoStream", "Disable OBS Auto-Launch", "Disables automatic stream start in OBS.", "-obs-no-stream");
-$helpData = registerArgument($helpData, $argv, "obsNoIni", "Disable OBS Auto-Settings", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
-$helpData = registerArgument($helpData, $argv, "obsNoWait", "Disable OBS Wait", "Disable waiting for OBS to launch.", "-obs-no-wait");
-$helpData = registerArgument($helpData, $argv, "disableObsAutomation", "Disable OBS Automation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
-$helpData = registerArgument($helpData, $argv, "startDisableComments", "Disable Comments", "Automatically disables commands when the stream starts.", "-dcomments");
-$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder", "Limit Stream Time", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
-$helpData = registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Auto Pin Comment", "Sets a comment to automatically pin when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
-$helpData = registerArgument($helpData, $argv, "forceSlobs", "Force StreamLabs-OBS", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
-$helpData = registerArgument($helpData, $argv, "promptLogin", "Prompt Username & Password", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
-$helpData = registerArgument($helpData, $argv, "bypassPause", "Bypass Pause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
-$helpData = registerArgument($helpData, $argv, "noBackup", "Disable Stream Recovery", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
-$helpData = registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyright Takedowns", "Acknowledges Instagram copyright takedowns but lets you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
-$helpData = registerArgument($helpData, $argv, "experimentalQuestion", "Enable Stream Questions", "Experimental: Attempts to allow viewers to ask questions while streaming.", "q", "stream-ama");
-$helpData = registerArgument($helpData, $argv, "webMode", "Web Console Mode", "Starts and uses a website console rather than the command line.", "w", "web");
-$helpData = registerArgument($helpData, $argv, "debugMode", "Enable Debug Mode", "Displays all requests being sent to Instagram.", "-debug");
-$helpData = registerArgument($helpData, $argv, "discardRecovery", "Auto Discard Recovery", "Automatically discards stream recovery.", "-discard-recovery");
-$helpData = registerArgument($helpData, $argv, "acceptRecovery", "Auto Accept Recovery", "Automatically accepts stream recovery.", "-accept-recovery");
-$helpData = registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
-$helpData = registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
-$helpData = registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
-$helpData = registerArgument($helpData, $argv, "dumpCli", "", "Dumps current command-line arguments into json.", "-dumpCli");
+registerArgument($helpData, $argv, "help", "Help", "Displays this message.", "h", "help");
+registerArgument($helpData, $argv, "bypassCheck", "Bypass OS Check", "Bypasses the operating system check. Please do not use this if don't know what you're doing!", "b", "bypass-check");
+registerArgument($helpData, $argv, "forceLegacy", "Force Legacy Mode", "Forces legacy mode for Windows & Mac users.", "l", "force-legacy");
+registerArgument($helpData, $argv, "bypassCutoff", "Bypass Cutoff", "Bypasses stream cutoff after one hour. Please do not use this if you are not verified!", "-bypass-cutoff");
+registerArgument($helpData, $argv, "infiniteStream", "Infinite Stream", "Automatically starts a new stream after the hour cutoff.", "i", "infinite-stream");
+registerArgument($helpData, $argv, "autoArchive", "Auto Archive", "Automatically archives a live stream after it ends.", "a", "auto-archive");
+registerArgument($helpData, $argv, "autoDiscard", "Auto Discard", "Automatically discards a live stream after it ends.", "d", "auto-discard");
+registerArgument($helpData, $argv, "logCommentOutput", "Log Comment Output", "Logs comment and like output into a text file.", "o", "comment-output");
+registerArgument($helpData, $argv, "obsAutomationAccept", "Accept OBS Automation Prompt", "Automatically accepts the OBS prompt.", "-obs");
+registerArgument($helpData, $argv, "obsNoStream", "Disable OBS Auto-Launch", "Disables automatic stream start in OBS.", "-obs-no-stream");
+registerArgument($helpData, $argv, "obsNoIni", "Disable OBS Auto-Settings", "Disable automatic resolution changes and only modifies the stream url/key.", "-obs-only-key");
+registerArgument($helpData, $argv, "obsNoWait", "Disable OBS Wait", "Disable waiting for OBS to launch.", "-obs-no-wait");
+registerArgument($helpData, $argv, "disableObsAutomation", "Disable OBS Automation", "Disables OBS automation and subsequently disables the path check.", "-no-obs");
+registerArgument($helpData, $argv, "startDisableComments", "Disable Comments", "Automatically disables commands when the stream starts.", "-dcomments");
+registerArgument($helpData, $argv, "thisIsAPlaceholder", "Limit Stream Time", "Sets the amount of time to limit the stream to in seconds. (Example: --stream-sec=60).", "-stream-sec");
+registerArgument($helpData, $argv, "thisIsAPlaceholder1", "Auto Pin Comment", "Sets a comment to automatically pin when the live stream starts. Note: Use underscores for spaces. (Example: --auto-pin=Hello_World!).", "-auto-pin");
+registerArgument($helpData, $argv, "forceSlobs", "Force StreamLabs-OBS", "Forces OBS Integration to prefer Streamlabs OBS over normal OBS.", "-streamlabs-obs");
+registerArgument($helpData, $argv, "promptLogin", "Prompt Username & Password", "Ignores config.php and prompts you for your username and password.", "p", "prompt-login");
+registerArgument($helpData, $argv, "bypassPause", "Bypass Pause", "Dangerously bypasses pause before starting the livestream.", "-bypass-pause");
+registerArgument($helpData, $argv, "noBackup", "Disable Stream Recovery", "Disables stream recovery for crashes or accidental window closes.", "-no-recovery");
+registerArgument($helpData, $argv, "fightCopyright", "Bypass Copyright Takedowns", "Acknowledges Instagram copyright takedowns but lets you continue streaming. This is at your own risk although it should be safe.", "-auto-policy");
+registerArgument($helpData, $argv, "experimentalQuestion", "Enable Stream Questions", "Experimental: Attempts to allow viewers to ask questions while streaming.", "q", "stream-ama");
+registerArgument($helpData, $argv, "webMode", "Web Console Mode", "Starts and uses a website console rather than the command line.", "w", "web");
+registerArgument($helpData, $argv, "debugMode", "Enable Debug Mode", "Displays all requests being sent to Instagram.", "-debug");
+registerArgument($helpData, $argv, "discardRecovery", "Auto Discard Recovery", "Automatically discards stream recovery.", "-discard-recovery");
+registerArgument($helpData, $argv, "acceptRecovery", "Auto Accept Recovery", "Automatically accepts stream recovery.", "-accept-recovery");
+registerArgument($helpData, $argv, "dump", "Trigger Dump", "Forces an error dump for debug purposes.", "-dump");
+registerArgument($helpData, $argv, "dumpVersion", "", "Dumps current release version.", "-dumpVersion");
+registerArgument($helpData, $argv, "dumpFlavor", "", "Dumps current release flavor.", "-dumpFlavor");
+registerArgument($helpData, $argv, "dumpCli", "", "Dumps current command-line arguments into json.", "-dumpCli");
 
 //Dump json-encoded command line arguments
 if (dumpCli) {
@@ -126,18 +126,18 @@ use InstagramAPI\Signatures;
 //Register commands
 Utils::log("Commands: Registering commands...");
 $commandData = [];
-$commandData = registerCommand($commandData, 'ecomments', function (StreamTick $tick) {
+registerCommand($commandData, 'ecomments', function (StreamTick $tick) {
     $tick->ig->live->enableComments($tick->broadcastId);
     return "Enabled Comments.";
 });
-$commandData = registerCommand($commandData, 'dcomments', function (StreamTick $tick) {
+registerCommand($commandData, 'dcomments', function (StreamTick $tick) {
     $tick->ig->live->disableComments($tick->broadcastId);
     return "Disabled Comments.";
 });
-$commandData = registerCommand($commandData, 'end', function (StreamTick $tick) {
+registerCommand($commandData, 'end', function (StreamTick $tick) {
     endLivestreamFlow($tick->ig, $tick->broadcastId, $tick->values[0], $tick->obsAuto, $tick->helper, $tick->pid, $tick->commentCount, $tick->likeCount, $tick->burstLikeCount);
 });
-$commandData = registerCommand($commandData, 'pin', function (StreamTick $tick) {
+registerCommand($commandData, 'pin', function (StreamTick $tick) {
     $commentId = $tick->values[0];
     if (strlen($commentId) === 17 && //Comment IDs are 17 digits
         is_numeric($commentId) && //Comment IDs only contain numbers
@@ -149,7 +149,7 @@ $commandData = registerCommand($commandData, 'pin', function (StreamTick $tick) 
         return "You entered an invalid comment id!";
     }
 });
-$commandData = registerCommand($commandData, 'unpin', function (StreamTick $tick) {
+registerCommand($commandData, 'unpin', function (StreamTick $tick) {
     if ($tick->lastCommentPin == -1) {
         return "You have no comment pinned!";
     } else {
@@ -157,14 +157,14 @@ $commandData = registerCommand($commandData, 'unpin', function (StreamTick $tick
         return "Unpinned the pinned comment!";
     }
 });
-$commandData = registerCommand($commandData, 'pinned', function (StreamTick $tick) {
+registerCommand($commandData, 'pinned', function (StreamTick $tick) {
     if ($tick->lastCommentPin == -1) {
         return "There is no comment pinned!";
     } else {
         return "Pinned Comment:\n @" . $tick->lastCommentPinHandle . ': ' . $tick->lastCommentPinText;
     }
 });
-$commandData = registerCommand($commandData, 'comment', function (StreamTick $tick) {
+registerCommand($commandData, 'comment', function (StreamTick $tick) {
     $text = $tick->values[0];
     if ($text !== "") {
         $tick->ig->live->comment($tick->broadcastId, $text);
@@ -173,20 +173,20 @@ $commandData = registerCommand($commandData, 'comment', function (StreamTick $ti
         return "Comments may not be empty!";
     }
 });
-$commandData = registerCommand($commandData, 'url', function (StreamTick $tick) {
+registerCommand($commandData, 'url', function (StreamTick $tick) {
     return "================================ Stream URL ================================\n" . $tick->streamUrl . "\n================================ Stream URL ================================";
 });
-$commandData = registerCommand($commandData, 'key', function (StreamTick $tick) {
+registerCommand($commandData, 'key', function (StreamTick $tick) {
     if (Utils::isWindows()) {
         shell_exec("echo " . Utils::sanitizeStreamKey($tick->streamKey) . " | clip");
         Utils::log("Windows: Your stream key has been pre-copied to your clipboard.");
     }
     return "======================== Current Stream Key ========================\n" . $tick->streamKey . "\n======================== Current Stream Key ========================";
 });
-$commandData = registerCommand($commandData, 'info', function (StreamTick $tick) {
+registerCommand($commandData, 'info', function (StreamTick $tick) {
     return "Info:\nStatus: $tick->broadcastStatus\nTop Live Eligible: " . ($tick->topLiveEligible === 1 ? "true" : "false") . "\nViewer Count: $tick->viewerCount\nTotal Unique Viewer Count: $tick->totalViewerCount";
 });
-$commandData = registerCommand($commandData, 'viewers', function (StreamTick $tick) {
+registerCommand($commandData, 'viewers', function (StreamTick $tick) {
     $response = "Viewers:\n";
     $tick->ig->live->getInfo($tick->broadcastId);
     $vCount = 0;
@@ -200,14 +200,14 @@ $commandData = registerCommand($commandData, 'viewers', function (StreamTick $ti
         return $response . "There are no live viewers.";
     }
 });
-$commandData = registerCommand($commandData, 'questions', function (StreamTick $tick) {
+registerCommand($commandData, 'questions', function (StreamTick $tick) {
     $response = "Questions:\n";
     foreach ($tick->ig->live->getLiveBroadcastQuestions($tick->broadcastId)->getQuestions() as $cquestion) {
         $response = $response . "[ID: " . $cquestion->getQid() . "] @" . $cquestion->getUser()->getUsername() . ": " . $cquestion->getText();
     }
     return $response;
 });
-$commandData = registerCommand($commandData, 'showquestion', function (StreamTick $tick) {
+registerCommand($commandData, 'showquestion', function (StreamTick $tick) {
     $questionId = $tick->values[0];
     if (strlen($questionId) === 17 && //Question IDs are 17 digits
         is_numeric($questionId) && //Question IDs only contain numbers
@@ -219,7 +219,7 @@ $commandData = registerCommand($commandData, 'showquestion', function (StreamTic
         return "Invalid question id!";
     }
 });
-$commandData = registerCommand($commandData, 'hidequestion', function (StreamTick $tick) {
+registerCommand($commandData, 'hidequestion', function (StreamTick $tick) {
     if ($tick->lastQuestion == -1) {
         return "There is no question displayed!";
     } else {
@@ -228,7 +228,7 @@ $commandData = registerCommand($commandData, 'hidequestion', function (StreamTic
         return "Removed the displayed question!";
     }
 });
-$commandData = registerCommand($commandData, 'wave', function (StreamTick $tick) {
+registerCommand($commandData, 'wave', function (StreamTick $tick) {
     $viewerId = $tick->values[0];
     try {
         @$tick->ig->live->wave($tick->broadcastId, $viewerId);
@@ -237,7 +237,7 @@ $commandData = registerCommand($commandData, 'wave', function (StreamTick $tick)
         return "User does not exist or user has already been waved at.";
     }
 });
-$commandData = registerCommand($commandData, 'block', function (StreamTick $tick) {
+registerCommand($commandData, 'block', function (StreamTick $tick) {
     $userId = $tick->values[0];
     @$tick->ig->people->block($userId);
     return "Blocked a user!";
@@ -957,9 +957,8 @@ function parseFinalViewers($finalResponse)
  * @param string $description The description of the argument to be used in the help menu.
  * @param string $tack The mini-tack argument name.
  * @param string|null $fullTack The full-tack argument name.
- * @return array The array of help data with the new argument.
  */
-function registerArgument($helpData, $argv, $name, $humanName, $description, $tack, $fullTack = null): array
+function registerArgument(&$helpData, $argv, $name, $humanName, $description, $tack, $fullTack = null)
 {
     if ($fullTack !== null) {
         $fullTack = '--' . $fullTack;
@@ -974,7 +973,6 @@ function registerArgument($helpData, $argv, $name, $humanName, $description, $ta
             'full' => $fullTack
         ]
     ]));
-    return $helpData;
 }
 
 /**
@@ -982,12 +980,10 @@ function registerArgument($helpData, $argv, $name, $humanName, $description, $ta
  * @param array $commandData Target command map.
  * @param string $commandName Name of command.
  * @param callable $onCommand Callable to execute when the command is run.
- * @return array The command data array with the new command.
  */
-function registerCommand($commandData, $commandName, $onCommand)
+function registerCommand(&$commandData, $commandName, $onCommand)
 {
     $commandData[$commandName] = $onCommand;
-    return $commandData;
 }
 
 class StreamTick
