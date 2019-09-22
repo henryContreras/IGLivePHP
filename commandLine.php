@@ -79,6 +79,23 @@ function sendRequest(string $cmd, $values)
         'cmd' => $cmd,
         'values' => isset($values) ? $values : [],
     ]));
-    Utils::log("Request Sent! Please check the other window to view the response!");
-    sleep(2);
+    Utils::log("Command Line: Waiting up to 5 seconds for a response...");
+
+    $response = "";
+    for ($x = 0; $x <= 5; $x++) {
+        if (!file_exists(__DIR__ . '/response')) {
+            sleep(1);
+            continue;
+        }
+
+        $response = file_get_contents(__DIR__ . '/response');
+        @unlink(__DIR__ . '/response');
+        break;
+    }
+
+    if (empty($response)) {
+        Utils::log("Command Line: No response in 5 seconds, please check the other window!");
+        return;
+    }
+    Utils::log("$cmd Response:\n$response");
 }

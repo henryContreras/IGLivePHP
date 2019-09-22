@@ -577,6 +577,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $console, 
                 if (isset($commandData[$cmd]) && is_callable($commandData[$cmd])) {
                     $streamTick = $streamTick->doTick($request['values'], $ig, $broadcastId, $helper, $obsAuto, $lastCommentPin, $lastCommentPinHandle, $lastCommentPinText, $streamUrl, $streamKey, $broadcastStatus, $topLiveEligible, $viewerCount, $totalViewerCount, $pid, $commentCount, $likeCount, $likeBurstCount);
                     $response = @call_user_func($commandData[$cmd], $streamTick);
+                    @file_put_contents(__DIR__ . '/response', $response);
                     Utils::log($response);
                     $consoleOutput[] = $response;
                 }
