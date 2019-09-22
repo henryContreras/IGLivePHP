@@ -907,7 +907,7 @@ function endLivestreamFlow($ig, $broadcastId, $archived, $obsAuto, $helper, $pid
     }
     Utils::log("Livestream: Ending livestream...");
     parseFinalViewers($ig->live->getFinalViewerList($broadcastId));
-    Utils::log("Analytics: Your stream ended with $commentCount comments, $likeCount likes, and $likeBurstCount!");
+    Utils::log("Analytics: Your stream ended with $commentCount comments, $likeCount likes, and $likeBurstCount burst likes!");
     $ig->live->end($broadcastId);
     Utils::log("Livestream: Ended livestream!");
     if ($archived == 'yes') {
