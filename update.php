@@ -3,6 +3,8 @@
 logTxt("Loading Updater...");
 clearstatcache();
 
+define("noComposer", in_array("-p", $argv), in_array("--private-api", $argv));
+
 $requestedTag = null;
 
 foreach ($argv as $curArg) {
@@ -115,6 +117,10 @@ if (count($queue) != 0) {
     logTxt("Updating " . count($queue) . " files...");
     foreach ($queue as $file) {
         if ($file == 'composer.json') {
+            if (noComposer) {
+                logTxt("Ignoring composer...");
+                continue;
+            }
             $composer = true;
         }
         file_put_contents($file, file_get_contents($release['links'][$file]));
@@ -122,7 +128,7 @@ if (count($queue) != 0) {
     logTxt("Files Updated!");
 }
 
-if (!file_exists("vendor/") || $composer) {
+if (!noComposer && (!file_exists("vendor/") || $composer)) {
     doComposerInstall($composer);
 }
 
