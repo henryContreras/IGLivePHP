@@ -9,8 +9,8 @@ if (php_sapi_name() !== "cli") {
 }
 
 //Script version constants
-define("scriptVersion", "1.9.1");
-define("scriptVersionCode", "61");
+define("scriptVersion", "1.9.2");
+define("scriptVersionCode", "62");
 define("scriptFlavor", "stable");
 
 //Command Line Argument Registration
@@ -647,8 +647,8 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $obsAuto, 
             $likesArray[] = (isset($userCache[$user->getUserId()]) ? ("@" . $userCache[$user->getUserId()]) : "An Unknown User") . " has liked the stream!";
         }
 
-        $likeCount += $likeCountResponse->getLikes();
-        $likeBurstCount += $likeCountResponse->getBurstLikes();
+        $likeCount = $likeCountResponse->getLikes();
+        $likeBurstCount = $likeCountResponse->getBurstLikes();
 
         //Send Heartbeat and Fetch Info
         $heartbeatResponse = $ig->live->getHeartbeatAndViewerCount($broadcastId); //Maintain :clap: comments :clap: and :clap: likes :clap: after :clap: stream
