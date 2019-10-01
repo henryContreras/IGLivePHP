@@ -301,7 +301,7 @@ function preparationFlow($helper, $args, $commandData, $streamTotalSec = 0, $aut
         Utils::dump();
         exit(1);
     }
-    Utils::log("Login: Successfully logged in!");
+    Utils::log("Login: Successfully logged in as " . $ig->username . "!");
 
     //Parse and validate recovery if present
     try {
