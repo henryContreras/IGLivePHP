@@ -177,6 +177,11 @@ registerCommand($commandData, $commandInfo, 'block', "Blocks a user from your ac
     return "Blocked a user!";
 });
 
+//Load config and utils
+require_once __DIR__ . '/utils.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/json.php';
+
 //Dump json-encoded command line arguments
 if (dumpCli) {
     print json_encode($helpData);
@@ -184,13 +189,10 @@ if (dumpCli) {
 }
 
 if (dumpCmds) {
-    print json_encode($commandInfo);
+    $jsonHelper = new JsonHelper();
+    print $jsonHelper->encode($commandInfo);
     exit(0);
 }
-
-//Load config and utils
-require_once __DIR__ . '/utils.php';
-require_once __DIR__ . '/config.php';
 
 //Dump script semantic version
 if (dumpVersion) {
