@@ -7,6 +7,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use InstagramAPI\Exception\InstagramException;
 use InstagramAPI\Instagram;
+use InstagramAPI\Request;
 use LazyJsonMapper\Exception\LazyJsonMapperException;
 
 class Utils
@@ -70,8 +71,9 @@ class Utils
     /**
      * Logs information about the current environment.
      * @param string $exception Exception message to log.
+     * @param Request $request Request object to log.
      */
-    public static function dump(string $exception = null)
+    public static function dump(string $exception = null, Request $request = null)
     {
         clearstatcache();
         self::log("===========BEGIN DUMP===========");
@@ -85,6 +87,9 @@ class Utils
         self::log("Bypassing OS-Check: " . (defined('bypassCheck') ? (bypassCheck == true ? "true" : "false") : 'Unknown'));
         self::log("Composer Lock: " . (file_exists("composer.lock") == true ? "true" : "false"));
         self::log("Vendor Folder: " . (file_exists("vendor/") == true ? "true" : "false"));
+        if ($request !== null) {
+            self::log("Request Endpoint: " . $request->getUrl());
+        }
         if ($exception !== null) {
             self::log("Exception: " . $exception);
         }
@@ -282,7 +287,7 @@ class Utils
                     $attemptBypass = self::promptInput();
                     if ($attemptBypass !== 'yes') {
                         self::log("Suspicious Login: Account Challenge Failed :(.");
-                        self::dump();
+                        self::dump(null, $ig->client->getLastRequest());
                         exit(1);
                     }
                     self::log("Suspicious Login: Preparing to verify account...");
@@ -295,7 +300,7 @@ class Utils
                     }
                 } else {
                     self::log("Error while logging into Instagram: " . $e->getMessage());
-                    self::dump();
+                    self::dump($e->getMessage(), $ig->client->getLastRequest());
                     exit(1);
                 }
             } catch (LazyJsonMapperException $mapperException) {

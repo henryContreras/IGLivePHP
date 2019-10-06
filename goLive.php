@@ -300,7 +300,7 @@ function preparationFlow($helper, $args, $commandData, $streamTotalSec = 0, $aut
     $ig = Utils::loginFlow($username, $password, debugMode);
     if (!$ig->isMaybeLoggedIn) {
         Utils::log("Login: Unsuccessful login.");
-        Utils::dump();
+        Utils::dump(null, $ig->client->getLastRequest());
         exit(1);
     }
     Utils::log("Login: Successfully logged in as " . $ig->username . "!");
@@ -485,7 +485,7 @@ function preparationFlow($helper, $args, $commandData, $streamTotalSec = 0, $aut
         endLivestreamFlow($ig, $broadcastId, '', $obsAutomation, $helper, 0, 0, 0, 0);
     } catch (Exception $e) {
         Utils::log("Error: An error occurred during livestream initialization.");
-        Utils::dump($e->getMessage());
+        Utils::dump($e->getMessage(), $ig->client->getLastRequest());
         exit(1);
     }
 }
@@ -584,7 +584,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $obsAuto, 
                 @unlink(__DIR__ . '/request');
             } catch (Exception $e) {
                 Utils::log("Error: An error occurred during command execution.");
-                Utils::dump($e->getMessage());
+                Utils::dump($e->getMessage(), $ig->client->getLastRequest());
             }
         }
 
@@ -665,7 +665,7 @@ function livestreamingFlow($ig, $broadcastId, $streamUrl, $streamKey, $obsAuto, 
         if ($heartbeatResponse->isIsPolicyViolation() && (int)$heartbeatResponse->getIsPolicyViolation() === 1) {
             Utils::log("Policy: Instagram has sent a policy violation" . ((fightCopyright && !$attemptedFight) ? "." : " and you stream has been stopped!") . " The following policy was broken: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
             if ($attemptedFight || !fightCopyright) {
-                Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()));
+                Utils::dump("Policy Violation: " . ($heartbeatResponse->getPolicyViolationReason() == null ? "Unknown" : $heartbeatResponse->getPolicyViolationReason()), $ig->client->getLastRequest());
                 endLivestreamFlow($ig, $broadcastId, '', $obsAuto, $helper, $pid, $commentCount, $likeCount, $likeBurstCount);
             }
             $ig->live->resumeBroadcastAfterContentMatch($broadcastId);
@@ -825,7 +825,7 @@ function legacyLivestreamingFlow($live, $broadcastId, $streamUrl, $streamKey, $o
                 Utils::log("Waved at a user!");
             } catch (Exception $waveError) {
                 Utils::log("Could not wave at user! Make sure you're waving at people who are in the stream. Additionally, you can only wave at a person once per stream!");
-                Utils::dump($waveError->getMessage());
+                Utils::dump($waveError->getMessage(), $live->ig->client->getLastRequest());
             }
             break;
         }
