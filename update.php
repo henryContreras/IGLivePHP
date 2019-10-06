@@ -72,7 +72,7 @@ if (in_array('-b', $argv) || in_array('--beta', $argv)) {
 
 logTxt("Fetching Latest " . ($beta === true ? "Beta" : "Stable") . " Release Data");
 $release = json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/" . ($beta === true ? "beta" : "stable") . ".json"), true);
-logTxt("Fetched Version: " . $release['version']);
+logTxt("Fetched Version: " . $release['version'] . " (Version Code " . $release['versionCode'] . ")");
 
 logTxt("Validating directories...");
 foreach ($release['dirs'] as $dir) {
