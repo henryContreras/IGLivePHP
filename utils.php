@@ -23,7 +23,7 @@ class Utils
             self::log("Update: You're running an in-dev build; Please note update checks will not work!");
             return false;
         }
-        return (int)json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/$flavor.json"), true)['versionCode'] > (int)$current;
+        return (int)json_decode(file_get_contents("https://raw.githubusercontent.com/henryContreras/IGLivePHP/update/$flavor.json"), true)['versionCode'] > (int)$current;
     }
 
     /**
