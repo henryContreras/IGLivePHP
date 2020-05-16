@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "versionCode": "64",
+  "versionCode": "63",
   "files": [
     "goLive.php",
     "testAuth.php",
