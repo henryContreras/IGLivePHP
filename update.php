@@ -15,7 +15,7 @@ foreach ($argv as $curArg) {
 
 if ($requestedTag !== null) {
     logTxt("Looking up requested tag: $requestedTag");
-    $betaResponse = json_decode(file_get_contents("https://raw.githubusercontent.com/JRoy/InstagramLive-PHP/update/beta.json"), true);
+    $betaResponse = json_decode(file_get_contents("https://raw.githubusercontent.com/henryContreras/IGLivePHP/update/beta.json"), true);
     $tagUrl = sprintf($betaResponse['tagValidationUrl'], $requestedTag);
     @file_get_contents($tagUrl);
     if (is404($http_response_header)) {
